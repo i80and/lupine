@@ -1,0 +1,83 @@
+#!/usr/bin/python
+import os
+import sys
+from optparse import OptionParser, OptionGroup
+
+import ProjectParser
+import Environment
+import ParseExceptions
+
+VERSION = '0.0'
+
+class Option:
+	'Class defining a compile option'
+	def __init__( self, name, data ):
+		if not type( data ) == dict:
+			raise TypeError, data
+		
+		self.name = name
+		self.description = data['description']
+		self.default = data['default']
+
+class Project:
+	def __init__( self, path ):
+		self.env = Environment.Env()
+		
+		# Parse the project config file
+		try:
+			raw = ProjectParser.ProjectFile( path, env=self.env )
+		except ParseExceptions.ParseError as err:
+			self.env.output.error( 'Parsing error: {0}'.format( err.msg ))
+
+		# Set up our command line options
+		option_parser = OptionParser( version='%prog {0}'.format( VERSION ))
+#		given_options = self.options
+#		project_options = OptionGroup( option_parser, "Project Options", "Options related to how this project will compile." )
+#		for option in self.options:
+#			switch = '--' + option.var
+#			project_options.add_option( switch, help=option.description, dest=option.var, default=option.default )
+#		
+#		option_parser.add_option_group( project_options )
+#			
+#		# Parse the given options and store the variables
+		(options, args) = option_parser.parse_args()
+#		for option in given_options:
+#			self.conf.vars[option.var] = getattr( options, option.var )
+#
+
+		# Find commands to run
+		self.env.run_commands()
+
+		# Output the makefile
+		self.env.output.start( 'Writing makefile...' )
+		self.env.make.write()
+		self.env.output.success( 'done' )
+		
+	@property
+	def name( self ):
+		try:
+			return self.__raw['name']
+		except KeyError:
+			return None
+	
+	@property
+	def version( self ):
+		try:
+			return self.__raw['version']
+		except KeyError:
+			return None
+	
+	@property
+	def options( self ):
+		try:
+			return [Option( option ) for option in self.__raw['options']]
+		except KeyError:
+			return []
+	
+def main():
+	f = open( './project.lupine', 'r' )
+	project = Project( './project.lupine' )
+	f.close()
+
+if __name__ == '__main__':
+	main()
