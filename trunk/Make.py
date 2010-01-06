@@ -20,7 +20,7 @@ class Makefile:
 	def __init__( self ):
 		self.phony = ['all', 'clean']
 		self.clean = []
-		self.rules = []
+		self.rules = {}
 		self.default = []
 		self.macros = {}
 
@@ -39,7 +39,7 @@ class Makefile:
 			commands = [commands]
 		
 		rule = Rule( target, deps, commands )
-		self.rules.append( rule )
+		self.rules[target] = ( rule )
 		
 		# Add a phony marker if needed
 		if phony:
