@@ -2,10 +2,6 @@ import os.path
 
 import Command
 
-import GenericCCompiler
-import CCompilers
-import CDriverExceptions
-
 class NoSourceError( Command.CommandError ):
 	pass
 
@@ -14,23 +10,20 @@ class InvalidCompileTypeError( Command.CommandError ):
 
 class command( Command.Command ):
 	compiler_hash = {
-		'posix': [CCompilers.clang, CCompilers.gcc, CCompilers.tinycc],
-		'default': [GenericCCompiler.GenericCompiler]
+		'posix': ['clang', 'gcc'],
+		'default': ['cc']
 		}
 		
 	name = 'c'
 
-	def __init__( self, env, var_name ):
-		# Get our platform information
-		Command.Command.__init__( self, env, var_name )
-		
 	def run( self ):
 		'The actual execution stage.'
 		if not self.has_variable( 'compiler' ):
 			self.setup()
 		
-		compiler = self['compiler']()
-		
+		self.set_child_command( self['compiler'], 'compiler' )
+		compiler = self['compiler']
+
 		# Set up our base directory
 		if self.has_variable( 'basedir' ):
 			basedir = self['basedir']
@@ -39,45 +32,47 @@ class command( Command.Command ):
 		
 		# See if any special options are specified for this compiler
 		if self.has_variable( compiler.name ):
-			compiler.options = self[compiler.name]
+			options = self[compiler.name]
 		else:
-			compiler.options = ''
+			options = ''
 		
 		# Find our output target, or just get our variable name if none is specified
 		if self.has_variable( 'target' ):
-			compiler.target = self['target']
+			target = self['target']
 		else:
-			compiler.target = self.reference_name
-		
-		if self.has_variable( 'optimize' ):
-			compiler.optimize = self['optimize']
-		else:
-			compiler.optimize = False
-		
-		if self.has_variable( 'debug' ):
-			compiler.debug = self['debug']
-		else:
-			compiler.debug = False
+			target = self.reference_name
+
+		# Debug overrides optimization
+		debug = self['debug']
+		optimize = False
+		if not debug and self['optimize']:
+			optimize = self['optimize']
 
 		if self.has_variable( 'type' ):
-			compiler.type = self['type']
+			type = self['type']
 		else:
 			raise Command.CommandError( self.name, 'No compile type specified in ' + self.reference_name )
-			
+					
 		if self.has_variable( 'src' ):		
-			compiler.src = [os.path.join( basedir, srcfile ) for srcfile in self['src']]
+			src = [os.path.join( basedir, srcfile ) for srcfile in self['src']]
 		else:
 			raise NoSourceError( self.name, 'No source specified in ' + self.reference_name )
 		
 		
 		# Make sure our type is OK
-		if not compiler.type in ['program', 'shared', 'static']:
+		if not type in ['program', 'shared']:
 			raise InvalidCompileTypeError( self.name, 'Invalid compile type specified for ' + self.reference_name )
+
+		compiler.set_instance( 'options', options )
+		compiler.set_instance( 'target', target )
+		compiler.set_instance( 'optimize', optimize )
+		compiler.set_instance( 'type', type )
+		compiler.set_instance( 'src', src )
 
 		# Now just create our make rules
 		try:
-			compiler.rule( self.env.make, self['os']['delete'] )
-		except CDriverExceptions.CDriverError as e:
+			compiler.run()
+		except Command.CommandError as e:
 			self.env.output.error( e.msg )
 		
 	def setup( self ):
@@ -152,7 +147,7 @@ class command( Command.Command ):
 		
 		if self.compiler_hash.has_key( platform ):
 			for compiler in self.compiler_hash[platform]:
-				path = self.env.find_program( compiler.name )
+				path = self.env.find_program( compiler )
 				if path:
 					compilers.append(( compiler, path ))
 		

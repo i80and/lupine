@@ -72,7 +72,7 @@ class Project:
 		try:
 			return [Option( option ) for option in self.__raw['options']]
 		except KeyError:
-			return []
+			return []	
 	
 def main():
 	f = open( './project.lupine', 'r' )

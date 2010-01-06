@@ -78,7 +78,8 @@ class Env:
 		self.commands = []
 		
 		self.var_regexp = re.compile( '\\$\\(([a-zA-Z_-]+)\\)' )
-		
+		self.space_regexp = re.compile( '\s' )
+
 	def load_command( self, name, prefix ):
 		'Return a command object of type name and with the supplied variable prefix'
 		if self.vars.has_key( name ):
@@ -148,3 +149,7 @@ class Env:
 				return chosen_path
 		
 		return None
+		
+	def escape( self, str ):
+		'Escape whitespace in a string.'
+		return self.space_regexp.sub(( lambda s: '\\' + s.group()), str )

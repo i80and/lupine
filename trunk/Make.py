@@ -70,6 +70,7 @@ class Makefile:
 			f.write( rule_str )
 		
 		# Add our clean rule
-		f.write( str( Rule( 'clean', self.default, self.clean )))
+		#f.write( str( Rule( 'clean', self.default, self.clean )))
+		f.write( str( Rule( 'clean', [], self.clean )))
 		
 		f.close()
