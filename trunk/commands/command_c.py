@@ -72,8 +72,9 @@ class command( Command.Command ):
 		compiler.set_instance( 'type', type )
 		compiler.set_instance( 'src', src )
 		#compiler.set_instance( 'include_paths', include_paths )
-		#compiler.set_instance( 'link_paths', link_paths )
 		compiler.set_instance( 'define', self['define'] )
+		compiler.set_instance( 'link', self['link'] )
+		compiler.set_instance( 'link_paths', self['link_paths'] )
 
 		# Now just create our make rules
 		try:

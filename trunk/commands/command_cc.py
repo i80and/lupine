@@ -42,6 +42,10 @@ class command( Command.Command ):
 		'Create a compile command.'
 		cflags = []
 				
+		if type == 'program' or type == 'shared':
+			if self['link']:
+				cflags.append( self.link( self['link'], self['link_paths'] ))
+
 		if type == 'program':
 			cflags.append( self.output_program( target ))
 		elif type == 'objcode':
@@ -57,7 +61,6 @@ class command( Command.Command ):
 			cflags.append( self.optimize( self['optimize'] ))
 		if self['define']:
 			cflags.append( self.set_defines( self['define'] ))
-			#print self['define']
 		if self['options']:
 			cflags.append( self['options'] )
 		
@@ -75,6 +78,21 @@ class command( Command.Command ):
 
 	def output_shared( self, dest ):
 		return '-shared -o {0}{1}'.format( dest, self.shared_ext )
+
+	def link( self, targets, paths ):
+		'Add link flags to link to targets searching within paths.'
+		if paths:
+			paths = ' '.join( ['-L{0}'.format( path ) for path in paths] )
+		
+		if targets:
+			targets = ' '.join( ['-l{0}'.format( target ) for target in targets] )
+		
+		if targets and paths:
+			return '{0} {1}'.format( paths, targets )
+		elif targets:
+			return targets
+		else:
+			return ''
 
 	def optimize( self, level ):
 		return ''
