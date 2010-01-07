@@ -19,14 +19,15 @@ class Makefile:
 	
 	def __init__( self ):
 		self.phony = ['all', 'clean']
-		self.clean = []
+		self.clean = {}
 		self.rules = {}
 		self.default = []
 		self.macros = {}
 
 	def add_clean( self, command ):
 		'Add a command to the clean target.'
-		self.clean.append( command )
+		# Use a dictionary to avoid duplicates
+		self.clean[command] = 1
 
 	def add_macro( self, name, command ):
 		'Add a macro definition to the start of the makefile'
@@ -37,6 +38,10 @@ class Makefile:
 		# If commands isn't a list, make it one
 		if not isinstance( commands, list ):
 			commands = [commands]
+		
+		# Avoid duplicates
+		if self.rules.has_key( target ):
+			return
 		
 		rule = Rule( target, deps, commands )
 		self.rules[target] = ( rule )
@@ -66,11 +71,11 @@ class Makefile:
 
 		# Set up our rules
 		for rule in self.rules:
-			rule_str = str( rule )
+			rule_str = str( self.rules[rule] )
 			f.write( rule_str )
 		
 		# Add our clean rule
 		#f.write( str( Rule( 'clean', self.default, self.clean )))
-		f.write( str( Rule( 'clean', [], self.clean )))
+		f.write( str( Rule( 'clean', [], self.clean.keys() )))
 		
 		f.close()

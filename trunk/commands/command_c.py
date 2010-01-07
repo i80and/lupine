@@ -42,17 +42,20 @@ class command( Command.Command ):
 		else:
 			target = self.reference_name
 
+		# Add additional search paths
+		
+
 		# Debug overrides optimization
 		debug = self['debug']
 		optimize = False
 		if not debug and self['optimize']:
 			optimize = self['optimize']
-
+			
 		if self.has_variable( 'type' ):
 			type = self['type']
 		else:
 			raise Command.CommandError( self.name, 'No compile type specified in ' + self.reference_name )
-					
+		
 		if self.has_variable( 'src' ):		
 			src = [os.path.join( basedir, srcfile ) for srcfile in self['src']]
 		else:
@@ -68,6 +71,9 @@ class command( Command.Command ):
 		compiler.set_instance( 'optimize', optimize )
 		compiler.set_instance( 'type', type )
 		compiler.set_instance( 'src', src )
+		#compiler.set_instance( 'include_paths', include_paths )
+		#compiler.set_instance( 'link_paths', link_paths )
+		compiler.set_instance( 'define', self['define'] )
 
 		# Now just create our make rules
 		try:

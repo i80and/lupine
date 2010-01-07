@@ -44,7 +44,6 @@ class Project:
 #		for option in given_options:
 #			self.conf.vars[option.var] = getattr( options, option.var )
 #
-
 		# Find commands to run
 		self.env.run_commands()
 

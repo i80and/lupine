@@ -2,7 +2,7 @@ import re
 import ParseExceptions
 
 class VarStore( dict ):
-	var_regexp = re.compile( '\\$\\(([a-zA-Z_-]+)\\)' )
+	var_regexp = re.compile( '\\$\\(([a-zA-Z_.\-]+)\\)' )
 
 	def __init__( self ):
 		dict.__init__( self )
@@ -15,6 +15,12 @@ class VarStore( dict ):
 			# Try to get the value from the local scope
 			value = dict.__getitem__( self, key )
 		else:
+			# We can't find this key through normal means.  If this refers to
+			# an object member, dereference it and check that in case of a static
+			# variable
+			splitkey = key.split( '.' )
+			if len( splitkey ) > 1:
+				return self[splitkey[0]]['.'.join( splitkey[1:] )]
 			raise ParseExceptions.NoMatchingVariable( key )
 		
 		if isinstance( value, basestring ):
@@ -28,7 +34,7 @@ class VarStore( dict ):
 		'Substitute any variables in a given string'
 		if not isinstance( value, basestring ):
 			return value
-						
+		
 		var_matches = self.var_regexp.findall( value )
 		for match in var_matches:
 			varstr = '$({0})'.format( match )

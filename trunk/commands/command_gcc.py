@@ -18,7 +18,7 @@ class command( command_cc.command ):
 			return ''
 		
 	def debug( self ):
-		return '-O0 -g'
+		return '-O0 -g -Wall'
 		
 	def __str__( self ):
 		return 'gcc'

@@ -7,8 +7,9 @@ class command( Command.Command ):
 	def __init__( self, env, var_name ):
 		'Get the operating system being run.'
 		Command.Command.__init__( self, env, var_name )
-		self.set_os()
-		self.set_core()
+		if not self.has_variable( 'os' ):
+			self.set_os()
+			self.set_core()
 		
 	def set_os( self ):
 		'Find the operating system information'
@@ -29,6 +30,8 @@ class command( Command.Command ):
 	
 	def set_core( self ):
 		'Find paths to a few basic core utilities'
+		# TODO: These should probably be their own command objects for greater
+		# flexibility.
 		platform_hash = {
 			'posix': {'delete': 'rm', 'copy': 'cp', 'move': 'mv'},
 			'windows': {'delete': 'del', 'copy': 'copy', 'move': 'move'}

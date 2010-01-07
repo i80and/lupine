@@ -22,9 +22,9 @@ class command( Command.Command ):
 		# Create object code rules
 		objects = []
 		for srcfile in self['src']:
-			target = self.env.escape( self.target_name( srcfile, self.objcode_ext ))
-			command = self.output( self.env.escape( srcfile ), target, 'objcode' )
-			deps = [self.env.escape( dep ) for dep in self.get_deps( srcfile )]
+			target = self.env.escape_whitespace( self.target_name( srcfile, self.objcode_ext ))
+			command = self.output( self.env.escape_whitespace( srcfile ), target, 'objcode' )
+			deps = [self.env.escape_whitespace( dep ) for dep in self.get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			
 			objects.append( target )
@@ -32,7 +32,7 @@ class command( Command.Command ):
 		
 		# Now create the end product
 		if self['type'] == 'program':
-			target = self.env.escape( self.target_name( self['target'], self.program_ext ))
+			target = self.env.escape_whitespace( self.target_name( self['target'], self.program_ext ))
 			command = self.output( objects, target, self['type'] )
 			self.env.make.add_rule( target, objects, command, default=True )
 			
@@ -41,7 +41,7 @@ class command( Command.Command ):
 	def output( self, src, target, type ):
 		'Create a compile command.'
 		cflags = []
-		
+				
 		if type == 'program':
 			cflags.append( self.output_program( target ))
 		elif type == 'objcode':
@@ -55,6 +55,11 @@ class command( Command.Command ):
 			cflags.append( self.debug())
 		if self['optimize']:
 			cflags.append( self.optimize( self['optimize'] ))
+		if self['define']:
+			cflags.append( self.set_defines( self['define'] ))
+			#print self['define']
+		if self['options']:
+			cflags.append( self['options'] )
 		
 		cflags = ' '.join( cflags )
 		if isinstance( src, list ):
@@ -76,6 +81,11 @@ class command( Command.Command ):
 
 	def debug( self ):
 		return ''
+
+	def set_defines( self, assignments ):
+		'Define a macro for this object.'
+		# Assignments should be a list, each element being of form x=v
+		return ' '.join( ['-D {0}'.format( self.env.escape( assignment, '"' )) for assignment in assignments])
 
 	def target_name( self, name, ext ):
 		'Give what the name of object code output is going to be.'

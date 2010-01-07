@@ -150,6 +150,11 @@ class Env:
 		
 		return None
 		
-	def escape( self, str ):
+	def escape_whitespace( self, str ):
 		'Escape whitespace in a string.'
 		return self.space_regexp.sub(( lambda s: '\\' + s.group()), str )
+	
+	def escape( self, str, char ):
+		'Escape instance of char in str.'
+		escaped = '\\' + char
+		return str.replace( char, escaped )
