@@ -2,6 +2,8 @@ import Command
 
 class command( Command.Command ):
 	name = 'link'
+	attributes = {'name':basestring, 'path': list, 'required': bool}
+	
 	def run( self ):
 		'The actual execution stage.'
 		# If no name is specified, fail

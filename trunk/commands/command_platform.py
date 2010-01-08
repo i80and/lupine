@@ -3,7 +3,8 @@ import Command
 
 class command( Command.Command ):
 	name = 'platform'
-
+	attributes = {'supported': list, 'unsupported': list}
+	
 	def __init__( self, env, var_name ):
 		'Get the operating system being run.'
 		Command.Command.__init__( self, env, var_name )

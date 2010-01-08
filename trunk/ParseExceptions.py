@@ -54,3 +54,11 @@ class NoSuchAttribute( ParseError ):
 			self.msg = base
 		else:
 			self.msg = '{0}: {1}'.format( base, attribute )
+
+class WrongDataType( ParseError ):
+	def __init__( self, variable, required='' ):
+		base = 'Wrong data type in variable: {0}'
+		self.msg = base.format( variable )
+
+		if required:
+			self.msg = '{0}.  Needs to be {1}'.format( self.msg, required )

@@ -38,16 +38,16 @@ class ProjectFile:
 			if not curlist:
 				# What to do if we're not in the middle of parsing a list
 				splitline = line.split( ':', 1 )
+				splitline = [lineseg.strip() for lineseg in splitline]
 				var = splitline[0]
 				data = splitline[1]
-				splitline = [lineseg.strip() for lineseg in splitline]
 				
 				# No assignment is taking place here; shouldn't just
 				# skip over it because it's probably a typo
 				if len( splitline ) <= 1:
-					raise ParseExceptions.ParseError, splitline[0]
+					raise ParseExceptions.ParseError, var
 				
-				if splitline[1][0] == self.LIST[0]:
+				if data[0] == self.LIST[0]:
 					# Start a list
 					# See if it's all on this line
 					if data[-1] == self.LIST[1]:
@@ -58,18 +58,27 @@ class ProjectFile:
 							raise e
 
 					else:
-						liststart = splitline[0]
+						liststart = var
 						curlist.append( data )
 					
-				elif splitline[1][0] == self.OBJECT:
+				elif data[0] == self.OBJECT:
 					# Create an object
 					try:
-						self[splitline[0]] = self.env.load_command( splitline[1][1:], splitline[0] )
+						self[var] = self.env.load_command( data[1:], var )
 					except Environment.NoSuchCommand as e:
 						raise ParseExceptions.UnknownCommand( e.command, splitline[0] )
 				else:
-					# Just a plain value
-					self[splitline[0]] = self.parseValue( splitline[1] )
+					# Just a plain value					
+					# If this is an object attribute, check it for validity
+					var_objs = var.split( '.' )
+					parsed_data = self.parseValue( data )
+					if len( var_objs ) > 1:
+						obj = '.'.join( var_objs[0:-1] )
+						required_type = self[obj].attributes[var_objs[-1]]
+						if not isinstance( parsed_data, required_type ):
+							raise ParseExceptions.WrongDataType( var, required_type.__name__ )
+					
+					self[var] = parsed_data
 			else:
 				# We are in fact inside a list definition
 				curlist.append( line )
@@ -177,6 +186,7 @@ class ProjectFile:
 					# Make sure we're actually dealing with an object
 					try:
 						if not isinstance( self.env[attr_split[0]], Command.Command ):
+							print self.env[attr_split[0]]
 							raise ParseExceptions.MemberAssignmentToNonObject( key )
 					except KeyError:
 						raise ParseExceptions.NoMatchingVariable( attr_split[0] )

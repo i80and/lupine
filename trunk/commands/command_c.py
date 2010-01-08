@@ -15,6 +15,18 @@ class command( Command.Command ):
 		}
 		
 	name = 'c'
+	attributes = {'basedir':basestring,
+					'type':basestring,
+					'src':list,
+					'define':list,
+					'link':list,
+					'optimize':float,
+					'debug':bool,
+					'target':basestring,
+					'compilers':list,
+					'whitelist':list,
+					'blacklist':list
+				}
 
 	def run( self ):
 		'The actual execution stage.'
@@ -33,7 +45,7 @@ class command( Command.Command ):
 		try:
 			compiler.run()
 		except Command.CommandError as e:
-			self.env.output.error( e.msg )
+			self.env.output.comment( e.msg, True )
 
 	def set_options( self ):
 		compiler = self['compiler']

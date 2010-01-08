@@ -27,7 +27,7 @@ class Project:
 		try:
 			raw = ProjectParser.ProjectFile( path, env=self.env )
 		except ParseExceptions.ParseError as err:
-			self.env.output.error( 'Parsing error: {0}'.format( err.msg ))
+			self.env.output.comment( 'Parsing error: {0}'.format( err.msg ), True)
 
 		# Set up our command line options
 		option_parser = OptionParser( version='%prog {0}'.format( VERSION ))
