@@ -9,7 +9,7 @@ class command( Command.Command ):
 		
 		# See if we've already found out about this library
 		name = self['name']
-		if self[name]:
+		if self.has_variable( name ):
 			return
 		
 		self.env.output.start( 'Checking for lib{0}...'.format( name ))
@@ -22,6 +22,8 @@ class command( Command.Command ):
 				self.env.output.error( 'not found' )
 			else:
 				self.env.output.warning( 'not found' )
+		
+		self.set_static( name, self['result'] )
 	
 	def eval( self ):
 		return self['result']
