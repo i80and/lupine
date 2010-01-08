@@ -58,7 +58,7 @@ class Output:
 			
 			while( self.queued_logs ):
 				sys.stdout.write( self.queued_logs.pop())
-				print self.results.pop()
+				print( self.results.pop())
 	
 	def error( self, error ):
 		'Print that a critical task failed, and exit'
@@ -81,8 +81,12 @@ class Output:
 		self.finish( message )
 		self.log( message )
 	
-	def comment( self, msg ):
-		print( msg )
+	def comment( self, msg, error=False ):
+		if error:
+			print( ''.join( [Output.ERROR, msg, Output.RESET] ))
+			sys.exit( 1 )
+		else:
+			print( msg )
 		self.log( msg )
 	
 	def log( self, msg ):
@@ -165,7 +169,7 @@ class Env:
 			try:
 				command.run()
 			except Command.CommandError as e:
-				self.output.error( str( e ))
+				self.output.comment( str( e ), True)
 	
 	def find_program( self, name ):
 		'Find the path of a program on the system, also confirming that it exists.'

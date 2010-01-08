@@ -4,6 +4,10 @@ class command( Command.Command ):
 	name = 'link'
 	def run( self ):
 		'The actual execution stage.'
+		# If no name is specified, fail
+		if not self.has_variable( 'name' ):
+			raise Command.CommandMissingOption( self.name, 'No library name specified in {0}'.format( self.reference_name ))
+		
 		self.set_child_command( 'c', 'compiler' )
 		compiler = self['compiler']	
 		

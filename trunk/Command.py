@@ -11,6 +11,13 @@ class CommandError( Exception ):
 		else:
 			return 'Error in {0} command.'.format( self.command )
 
+class CommandMissingOption( CommandError ):
+	def __str__( self ):
+		if self.msg:
+			return 'Missing required option in {0}: {1}'.format( self.command, self.msg )
+		else:
+			return 'Missing required option in {0} command.'.format( self.command )
+
 class Command:
 	'Abstract class representing a command object.'
 	name = None
