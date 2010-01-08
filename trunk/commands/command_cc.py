@@ -152,13 +152,16 @@ class command( Command.Command ):
 		
 		return output.keys()
 
-	def test_lib( self, libname ):
+	def test_lib( self, libname, path ):
 		'Test to see if we can link to a given library'
 		command = [self['path']]
 		output_name = '__lupine_test_{0}'.format( libname )
 		
+		if not path:
+			path = []
+		
 		command.extend( self.output_shared( output_name ).split( ' ' ))
-		command.extend( self.link( libname, [] ).split( ' ' ))
+		command.extend( self.link( libname, path ).split( ' ' ))
 		result = subprocess.call( command, stderr=subprocess.PIPE )
 		
 		# Remove our temp output file

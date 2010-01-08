@@ -17,7 +17,7 @@ class command( Command.Command ):
 			return
 		
 		self.env.output.start( 'Checking for lib{0}...'.format( name ))
-		self.set_instance( 'result',  self['compiler'].test_lib( name ))
+		self.set_instance( 'result',  self['compiler'].test_lib( name, self['path'] ))
 
 		if self['result']:
 			self.env.output.success( 'found' )

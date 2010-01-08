@@ -195,10 +195,10 @@ class command( Command.Command ):
 		
 		return compilers
 
-	def test_lib( self, libname ):
+	def test_lib( self, libname, path ):
 		'Test to see if we can link to a given library'
 		self.setup()
-		return self['compiler'].test_lib( libname )
+		return self['compiler'].test_lib( libname, path )
 					
 	def __str__( self ):
 		return 'Command({0} {1})'.format( self['src'], self['basedir'] )
