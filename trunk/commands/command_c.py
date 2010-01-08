@@ -1,5 +1,5 @@
 import os.path
-
+import command_link
 import Command
 
 class NoSourceError( Command.CommandError ):
@@ -18,12 +18,26 @@ class command( Command.Command ):
 
 	def run( self ):
 		'The actual execution stage.'
-		if not self.has_variable( 'compiler' ):
-			self.setup()
-		
-		self.set_child_command( self['compiler'], 'compiler' )
+		self.setup()
+		self.set_options()		
 		compiler = self['compiler']
+	
+		# Check for required options
+		if not compiler['src']:
+			raise NoSourceError( self.name, 'No source specified in ' + self.reference_name )
 
+		if not compiler['type']:
+			raise Command.CommandError( self.name, 'No compile type specified in ' + self.reference_name )
+	
+		# Now just create our make rules
+		try:
+			compiler.run()
+		except Command.CommandError as e:
+			self.env.output.error( e.msg )
+
+	def set_options( self ):
+		compiler = self['compiler']
+		
 		# Set up our base directory
 		if self.has_variable( 'basedir' ):
 			basedir = self['basedir']
@@ -42,9 +56,6 @@ class command( Command.Command ):
 		else:
 			target = self.reference_name
 
-		# Add additional search paths
-		
-
 		# Debug overrides optimization
 		debug = self['debug']
 		optimize = False
@@ -52,38 +63,56 @@ class command( Command.Command ):
 			optimize = self['optimize']
 			
 		if self.has_variable( 'type' ):
-			type = self['type']
+			compile_type = self['type']
 		else:
-			raise Command.CommandError( self.name, 'No compile type specified in ' + self.reference_name )
+			compile_type = None
 		
 		if self.has_variable( 'src' ):		
 			src = [os.path.join( basedir, srcfile ) for srcfile in self['src']]
 		else:
-			raise NoSourceError( self.name, 'No source specified in ' + self.reference_name )
+			src = []
 		
 		
+		# Add link targets
+		link = []
+		link_paths = []
+		if self['link']:
+			for lib in self['link']:
+				if isinstance( lib, basestring ):
+					# Create a link object
+					link_var_name = 'link_{0}'.format( lib )
+					self.set_child_command( 'link', link_var_name )
+					self[link_var_name].set_instance( 'name', lib )
+					self[link_var_name].run()
+					link.append( lib )
+				
+				if isinstance( lib, command_link.command ):
+					# A link command object is given; it's already been tested
+					# for, so just grab the path and name
+					link.append( lib['name'] )
+					link_paths.append( lib['path'] )
+					
 		# Make sure our type is OK
-		if not type in ['program', 'shared']:
+		if not compile_type in ['program', 'shared']:
 			raise InvalidCompileTypeError( self.name, 'Invalid compile type specified for ' + self.reference_name )
 
 		compiler.set_instance( 'options', options )
 		compiler.set_instance( 'target', target )
 		compiler.set_instance( 'optimize', optimize )
-		compiler.set_instance( 'type', type )
+		compiler.set_instance( 'type', compile_type )
 		compiler.set_instance( 'src', src )
 		#compiler.set_instance( 'include_paths', include_paths )
 		compiler.set_instance( 'define', self['define'] )
-		compiler.set_instance( 'link', self['link'] )
-		compiler.set_instance( 'link_paths', self['link_paths'] )
-
-		# Now just create our make rules
-		try:
-			compiler.run()
-		except Command.CommandError as e:
-			self.env.output.error( e.msg )
-		
+		compiler.set_instance( 'link', link )
+		compiler.set_instance( 'link_paths', link_paths )
+	
 	def setup( self ):
 		'Find a working compiler and other such initial setup tasks'	
+		# If we've already found which compiler we need, just instantiate it
+		if self.has_variable( 'compiler' ):
+			self.set_child_command( self['compiler'], 'compiler' )
+			return
+			
 		self.set_child_command( 'platform', 'os' )
 		
 		# Look for an installed and supported compiler
@@ -127,9 +156,15 @@ class command( Command.Command ):
 		# Set up our Make macros
 		self.env.make.add_macro( 'CC', compilers[0][1] )
 		
-		# Store our compiler choice for other instances
+		# Store our compiler choice for other instances, and instantiate the compiler
+		# for this object
 		self.set_static( 'compiler', compiler )
-	
+		self.set_child_command( self['compiler'], 'compiler' )
+
+
+		# Store the path to the compiler
+		self['compiler'].set_static( 'path', compilers[0][1] )
+			
 	def find_compilers( self ):
 		'Find a supported compiler.'
 		os = self['os']['os']
@@ -159,6 +194,11 @@ class command( Command.Command ):
 					compilers.append(( compiler, path ))
 		
 		return compilers
+
+	def test_lib( self, libname ):
+		'Test to see if we can link to a given library'
+		self.setup()
+		return self['compiler'].test_lib( libname )
 					
 	def __str__( self ):
 		return 'Command({0} {1})'.format( self['src'], self['basedir'] )

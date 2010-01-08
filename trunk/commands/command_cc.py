@@ -1,5 +1,7 @@
+import os
 import os.path
 import re
+import subprocess
 import Command
 
 class SourceNotFound( Command.CommandError ):
@@ -22,38 +24,51 @@ class command( Command.Command ):
 		# Create object code rules
 		objects = []
 		for srcfile in self['src']:
-			target = self.env.escape_whitespace( self.target_name( srcfile, self.objcode_ext ))
-			command = self.output( self.env.escape_whitespace( srcfile ), target, 'objcode' )
+			# Add this file's target to a list for later reference
+			objects.append( self.env.escape_whitespace( self.target_name( srcfile, self.objcode_ext )))
+			
+			#target = self.env.escape_whitespace( objects[-1] )
+			target = objects[-1]
+			command = self.create_make_command( srcfile, target, 'objcode' )
 			deps = [self.env.escape_whitespace( dep ) for dep in self.get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			
-			objects.append( target )
 			self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
 		
 		# Now create the end product
 		if self['type'] == 'program':
 			target = self.env.escape_whitespace( self.target_name( self['target'], self.program_ext ))
-			command = self.output( objects, target, self['type'] )
+			command = self.create_make_command( objects, target, self['type'] )
 			self.env.make.add_rule( target, objects, command, default=True )
 			
 			self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
 		
-	def output( self, src, target, type ):
+	def create_make_command( self, src, target, type ):
+		'Create a statement suitable for compiling source in a makefile'
+		if isinstance( src, list ):
+			src = ' '.join( src )	
+		elif isinstance( src, str ):
+			src = self.env.escape_whitespace( src )
+			
+		return '$(CC) {0} {1}'.format( src, self.get_cflags( target, type ))
+		
+	def get_cflags( self, target, type ):
 		'Create a compile command.'
 		cflags = []
-				
+
 		if type == 'program' or type == 'shared':
 			if self['link']:
 				cflags.append( self.link( self['link'], self['link_paths'] ))
 
-		if type == 'program':
-			cflags.append( self.output_program( target ))
-		elif type == 'objcode':
-			cflags.append( self.output_objcode( target ))
-		elif type == 'shared':
-			cflags.append( self.output_shared( target ))
-		else:
-			return ''
+		if target:
+			if type == 'program':
+				cflags.append( self.output_program( target ))
+			elif type == 'objcode':
+				cflags.append( self.output_objcode( target ))
+			elif type == 'shared':
+				cflags.append( self.output_shared( target ))
+			else:
+				return ''
 		
 		if self['debug']:
 			cflags.append( self.debug())
@@ -64,11 +79,7 @@ class command( Command.Command ):
 		if self['options']:
 			cflags.append( self['options'] )
 		
-		cflags = ' '.join( cflags )
-		if isinstance( src, list ):
-			src = ' '.join( src )
-		
-		return '$(CC) {0} {1}'.format( src, cflags )
+		return ' '.join( cflags )
 	
 	def output_program( self, dest ):
 		return '-o {0}'.format( dest )
@@ -141,6 +152,23 @@ class command( Command.Command ):
 		
 		return output.keys()
 
+	def test_lib( self, libname ):
+		'Test to see if we can link to a given library'
+		command = [self['path']]
+		output_name = '__lupine_test_{0}'.format( libname )
+		
+		command.extend( self.output_shared( output_name ).split( ' ' ))
+		command.extend( self.link( libname, [] ).split( ' ' ))
+		result = subprocess.call( command, stderr=subprocess.PIPE )
+		
+		# Remove our temp output file
+		try:
+			os.remove( '{0}{1}'.format( output_name, self.shared_ext ))
+		except OSError:
+			pass
+		
+		# 0 indicates success, but is technically False.  Fix that
+		return not bool( result )
 
 	def __str__( self ):
 		return 'cc'

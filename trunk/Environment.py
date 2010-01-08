@@ -31,29 +31,54 @@ class Output:
 			self.loghandle = open( path, 'w' )
 		else:
 			self.loghandle = None
+		
+		# Tasks can have sub-tasks.  As such, we need to be able to queue
+		# several levels of tasks, and print them off in the correct order
+		# once all of them have been ended
+		self.queued_logs = []
+		self.results = []
 	
 	def start( self, task ):
-		if not isinstance( task, basestring ):
-			raise TypeError
+		'Print that a task is beginning'
+		message = task.ljust( self.COLUMN_LEN )
+		self.queued_logs.insert( 0, message.ljust( self.COLUMN_LEN ))
 		
-		sys.stdout.write( task.ljust( Output.COLUMN_LEN ))
+		# Print a first-tier task immediately to keep the user informed
+		if len( self.queued_logs ) == 1:
+			sys.stdout.write( self.queued_logs[-1].ljust( self.COLUMN_LEN ))
+	
+	def finish( self, message ):
+		'Finish the most recently-opened task'
+		self.results.append( message )
+		
+		# If all tasks have been completed, print them all
+		if len( self.queued_logs ) == len( self.results ):
+			# The chronologically first task has already been printed; blank it
+			self.queued_logs[-1] = ''
+			
+			while( self.queued_logs ):
+				sys.stdout.write( self.queued_logs.pop())
+				print self.results.pop()
 	
 	def error( self, error ):
+		'Print that a critical task failed, and exit'
 		message = ''.join( [Output.ERROR, error, Output.RESET] )
-		print( message )
+		self.finish( message )
 		self.log( message )
 		
 		# Quit
 		sys.exit( 1 )
 	
-	def warning( self, warning ):		
+	def warning( self, warning ):
+		'Print that a task failed'
 		message = ''.join( [Output.WARNING, warning, Output.RESET] )
-		print( message )
+		self.finish( message )
 		self.log( message )
 
 	def success( self, success ):
+		'Print that a task succeeded'
 		message = ''.join( [Output.SUCCESS, success, Output.RESET] )
-		print( message )
+		self.finish( message )
 		self.log( message )
 	
 	def comment( self, msg ):
@@ -61,6 +86,7 @@ class Output:
 		self.log( msg )
 	
 	def log( self, msg ):
+		'Log to a file'
 		if self.loghandle:
 			self.loghandle.write( msg + '\n' )
 
