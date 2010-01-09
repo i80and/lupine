@@ -44,7 +44,7 @@ class ProjectFile:
 				
 				# No assignment is taking place here; shouldn't just
 				# skip over it because it's probably a typo
-				if len( splitline ) <= 1:
+				if len( splitline ) <= 1 or not data:
 					raise ParseExceptions.ParseError, var
 				
 				if data[0] == self.LIST[0]:

@@ -1,6 +1,7 @@
 import os.path
 import command_link
 import Command
+import glob
 
 class NoSourceError( Command.CommandError ):
 	pass
@@ -79,8 +80,11 @@ class command( Command.Command ):
 		else:
 			compile_type = None
 		
-		if self.has_variable( 'src' ):		
-			src = [os.path.join( basedir, srcfile ) for srcfile in self['src']]
+		if self.has_variable( 'src' ):
+			# Apply the basedir and glob wildcards
+			src = []
+			for srcfile in self['src']:
+				src.extend( glob.glob( os.path.join( basedir, srcfile )))
 		else:
 			src = []
 		
@@ -211,6 +215,6 @@ class command( Command.Command ):
 		'Test to see if we can link to a given library'
 		self.setup()
 		return self['compiler'].test_lib( libname, path )
-					
+
 	def __str__( self ):
 		return 'Command({0} {1})'.format( self['src'], self['basedir'] )
