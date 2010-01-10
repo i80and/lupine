@@ -7,6 +7,7 @@ import Command
 import Make
 import VarStore
 import Command
+import ParseExceptions
 
 class ConfigError( Exception ):
 	pass
@@ -170,6 +171,8 @@ class Env:
 				command.run()
 			except Command.CommandError as e:
 				self.output.comment( str( e ), True)
+			except ParseExceptions.ParseError as e:
+				self.output.comment( str( e ), True)				
 	
 	def find_program( self, name ):
 		'Find the path of a program on the system, also confirming that it exists.'

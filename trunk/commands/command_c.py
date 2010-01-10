@@ -74,21 +74,30 @@ class command( Command.Command ):
 		optimize = False
 		if not debug and self['optimize']:
 			optimize = self['optimize']
-			
+
+		# Set up target type			
 		if self.has_variable( 'type' ):
 			compile_type = self['type']
 		else:
 			compile_type = None
+
+		# Make sure our type is OK
+		if not compile_type in ['program', 'shared', 'objcode']:
+			raise InvalidCompileTypeError( self.name, 'Invalid compile type specified for ' + self.reference_name )
 		
 		if self.has_variable( 'src' ):
 			# Apply the basedir and glob wildcards
 			src = []
 			for srcfile in self['src']:
-				src.extend( glob.glob( os.path.join( basedir, srcfile )))
+				if isinstance( srcfile, basestring ):
+					src.extend( glob.glob( os.path.join( basedir, srcfile )))
+				else:
+					src.append( srcfile )
+			self.set_instance( 'src', src )
 		else:
 			src = []
 		
-		
+				
 		# Add link targets
 		link = []
 		link_paths = []
@@ -108,10 +117,6 @@ class command( Command.Command ):
 					link.append( lib['name'] )
 					link_paths.append( lib['path'] )
 					
-		# Make sure our type is OK
-		if not compile_type in ['program', 'shared']:
-			raise InvalidCompileTypeError( self.name, 'Invalid compile type specified for ' + self.reference_name )
-
 		compiler.set_instance( 'options', options )
 		compiler.set_instance( 'target', target )
 		compiler.set_instance( 'optimize', optimize )
@@ -121,6 +126,9 @@ class command( Command.Command ):
 		compiler.set_instance( 'define', self['define'] )
 		compiler.set_instance( 'link', link )
 		compiler.set_instance( 'link_paths', link_paths )
+	
+		output = compiler.get_objcode_output()
+		self.set_instance( 'output', output )
 	
 	def setup( self ):
 		'Find a working compiler and other such initial setup tasks'	

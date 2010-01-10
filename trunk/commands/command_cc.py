@@ -3,6 +3,7 @@ import os.path
 import re
 import subprocess
 import Command
+import command_c
 
 class SourceNotFound( Command.CommandError ):
 	pass
@@ -24,19 +25,26 @@ class command( Command.Command ):
 		# Create object code rules
 		objects = []
 		for srcfile in self['src']:
-			# Add this file's target to a list for later reference
+			if isinstance( srcfile, command_c.command ):
+				# If we're linking to another C object, add its object code to our link list
+				objects.extend( srcfile['output'] )
+				continue
+			
 			objects.append( self.env.escape_whitespace( self.target_name( srcfile, self.objcode_ext )))
 			
-			#target = self.env.escape_whitespace( objects[-1] )
 			target = objects[-1]
 			command = self.create_make_command( srcfile, target, 'objcode' )
 			deps = [self.env.escape_whitespace( dep ) for dep in self.get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			
 			self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
-		
+
 		# Now create the end product
-		if self['type'] == 'program':
+		if self['type'] == 'objcode':
+			# If object code is our target, quit now
+			return
+		elif self['type'] == 'program':
+			# Create an executable
 			target = self.env.escape_whitespace( self.target_name( self['target'], self.program_ext ))
 			command = self.create_make_command( objects, target, self['type'] )
 			self.env.make.add_rule( target, objects, command, default=True )
@@ -172,6 +180,14 @@ class command( Command.Command ):
 		
 		# 0 indicates success, but is technically False.  Fix that
 		return not bool( result )
+
+	def get_objcode_output( self ):
+		'Get the expected output filenames of this module'
+		output = [self.env.escape_whitespace( self.target_name( src, self.objcode_ext ))
+			for src in self['src'] if not isinstance( src, Command.Command )]
+		
+		self.set_instance( 'output', output )
+		return output
 
 	def __str__( self ):
 		return 'cc'
