@@ -1,7 +1,7 @@
-import os.path
 import command_link
 import Command
 import glob
+import os.path
 
 class NoSourceError( Command.CommandError ):
 	pass
@@ -26,11 +26,17 @@ class command( Command.Command ):
 					'target':basestring,
 					'compilers':list,
 					'whitelist':list,
-					'blacklist':list
+					'blacklist':list,
+					'depends':list,
+					'conflicts':list
 				}
 
 	def run( self ):
 		'The actual execution stage.'
+		# Check to see if our depends/conflicts checks out
+		if not self:
+			return
+		
 		self.setup()
 		self.set_options()		
 		compiler = self['compiler']
@@ -41,7 +47,7 @@ class command( Command.Command ):
 
 		if not compiler['type']:
 			raise Command.CommandError( self.name, 'No compile type specified in ' + self.reference_name )
-	
+				
 		# Now just create our make rules
 		try:
 			compiler.run()
@@ -226,3 +232,16 @@ class command( Command.Command ):
 
 	def __str__( self ):
 		return 'Command({0} {1})'.format( self['src'], self['basedir'] )
+
+	def __nonzero__( self ):
+		if self['depends']:
+			for dep in self['depends']:
+				if not dep:
+					return False
+		
+		if self['conflicts']:
+			for conflict in self['conflicts']:
+				if conflict:
+					return False
+		
+		return True

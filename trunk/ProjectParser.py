@@ -59,10 +59,9 @@ class ProjectFile:
 
 					else:
 						liststart = var
-						curlist.append( data )
-					
+						curlist.append( data )					
 				elif data[0] == self.OBJECT:
-					# Create an object
+					# Create an object if this isn't a command name
 					try:
 						self[var] = self.env.load_command( data[1:], var )
 					except Environment.NoSuchCommand as e:
@@ -74,9 +73,13 @@ class ProjectFile:
 					parsed_data = self.parseValue( data )
 					if len( var_objs ) > 1:
 						obj = '.'.join( var_objs[0:-1] )
-						required_type = self[obj].attributes[var_objs[-1]]
-						if not isinstance( parsed_data, required_type ):
-							raise ParseExceptions.WrongDataType( var, required_type.__name__ )
+						if not self.env.has_command( obj ):
+							required_type = self[obj].attributes[var_objs[-1]]
+							if not isinstance( parsed_data, required_type ):
+								raise ParseExceptions.WrongDataType( var, required_type.__name__ )
+					else:
+						if self.env.has_command( var ):
+							raise ParseExceptions.ReservedVariable( var )
 					
 					self[var] = parsed_data
 			else:
@@ -185,8 +188,10 @@ class ProjectFile:
 				else:
 					# Make sure we're actually dealing with an object
 					try:
+						if self.env.has_command( attr_split[0] ):
+							self.env[key] = value
+							return
 						if not isinstance( self.env[attr_split[0]], Command.Command ):
-							print self.env[attr_split[0]]
 							raise ParseExceptions.MemberAssignmentToNonObject( key )
 					except KeyError:
 						raise ParseExceptions.NoMatchingVariable( attr_split[0] )

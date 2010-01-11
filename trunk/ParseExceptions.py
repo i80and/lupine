@@ -62,3 +62,11 @@ class WrongDataType( ParseError ):
 
 		if required:
 			self.msg = '{0}.  Needs to be {1}'.format( self.msg, required )
+
+class ReservedVariable( ParseError ):
+	def __init__( self, var='' ):
+		base = 'Assignment to reserved variable'
+		if not var:
+			self.msg = base
+		else:
+			self.msg = '{0}: {1}'.format( base, var )

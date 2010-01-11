@@ -111,6 +111,11 @@ class Env:
 		self.var_regexp = re.compile( '\\$\\(([a-zA-Z_-]+)\\)' )
 		self.space_regexp = re.compile( '\s' )
 
+	def has_command( self, name ):
+		'Check if the given command exists'
+		# TODO: Make this more robust
+		return os.path.exists( 'commands/command_{0}.py'.format( name ))
+
 	def load_command( self, name, prefix ):
 		'Return a command object of type name and with the supplied variable prefix'
 		if self.vars.has_key( name ):
