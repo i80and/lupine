@@ -39,14 +39,15 @@ class ProjectFile:
 				# What to do if we're not in the middle of parsing a list
 				splitline = line.split( ':', 1 )
 				splitline = [lineseg.strip() for lineseg in splitline]
-				var = splitline[0]
-				data = splitline[1]
-				
+
 				# No assignment is taking place here; shouldn't just
 				# skip over it because it's probably a typo
-				if len( splitline ) <= 1 or not data:
+				if len( splitline ) <= 1 or not splitline[1]:
 					raise ParseExceptions.ParseError, var
-				
+
+				var = splitline[0]
+				data = splitline[1]
+								
 				if data[0] == self.LIST[0]:
 					# Start a list
 					# See if it's all on this line
