@@ -1,3 +1,5 @@
+# TODO: Rewrite the C command object.  It's... ugly.
+
 import command_link
 import Command
 import glob
@@ -28,7 +30,8 @@ class command( Command.Command ):
 					'whitelist':list,
 					'blacklist':list,
 					'depends':list,
-					'conflicts':list
+					'conflicts':list,
+					'packages':list
 				}
 
 	def run( self ):
@@ -65,9 +68,9 @@ class command( Command.Command ):
 		
 		# See if any special options are specified for this compiler
 		if self.has_variable( compiler.name ):
-			options = self[compiler.name]
+			options = [self[compiler.name]]
 		else:
-			options = ''
+			options = []
 		
 		# Find our output target, or just get our variable name if none is specified
 		if self.has_variable( 'target' ):
@@ -122,8 +125,14 @@ class command( Command.Command ):
 					# for, so just grab the path and name
 					link.append( lib['name'] )
 					link_paths.append( lib['path'] )
-					
-		compiler.set_instance( 'options', options )
+		
+		# If packages are listed, append their options to our option list
+		if self['packages']:
+			for package in self['packages']:
+				if package.has_variable( 'options' ):
+					options.append( package['options'] )
+		
+		compiler.set_instance( 'options', ' '.join( options ))
 		compiler.set_instance( 'target', target )
 		compiler.set_instance( 'optimize', optimize )
 		compiler.set_instance( 'type', compile_type )
@@ -230,8 +239,12 @@ class command( Command.Command ):
 		self.setup()
 		return self['compiler'].test_lib( libname, path )
 
+	def get_compiler( self ):
+		self.setup()
+		return self['compiler'].name
+
 	def __str__( self ):
-		return 'Command({0} {1})'.format( self['src'], self['basedir'] )
+		return 'C({0} {1})'.format( self['src'], self['basedir'] )
 
 	def __nonzero__( self ):
 		if self['depends']:
