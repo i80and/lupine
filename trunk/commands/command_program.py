@@ -39,13 +39,16 @@ class command( command_module.command ):
 		
 		# Add linking data
 		libs = []
+		libsearch = []
 		if self.has_variable( 'libs' ):
 			for lib in self['libs']:
 				if isinstance( lib, basestring ):
 					libs.append( lib )
 				elif isinstance( lib, Command.Command ) and lib.name == 'lib':
 					libs.extend( lib['link'] )
-
+					if lib.has_variable( 'libsearch' ):
+						libsearch.extend( lib['libsearch'] )
+		
 		# Set up raw compile options
 		options = []
 		if self.has_variable( 'options' ):
@@ -80,7 +83,7 @@ class command( command_module.command ):
 			modules.extend( module['output'] )
 		
 		target = self.env.escape_whitespace( compiler.name_program( target ))
-		command = compiler.output_program( modules, target, self['optimize'], libs, [], [] )
+		command = compiler.output_program( modules, target, self['optimize'], libs, libsearch, [] )
 		self.env.make.add_rule( target, modules, command, default=True )
 		
 		self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
