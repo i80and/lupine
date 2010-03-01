@@ -40,11 +40,11 @@ class command( Command.Command ):
 		# Add linking data
 		libs = []
 		if self.has_variable( 'libs' ):
-			for lib in libs:
+			for lib in self['libs']:
 				if isinstance( lib, basestring ):
 					libs.append( lib )
 				elif isinstance( lib, Command.Command ) and lib.name == 'lib':
-					pass
+					libs.extend( lib['link'] )
 
 		# Set up raw compile options
 		options = []
