@@ -14,7 +14,6 @@ class command( Command.Command ):
 	def run( self ):
 		'The actual execution stage.'
 		name = self['name']
-		self.set_child_command( 'c', 'compiler' )
 		cmd = [self.path, '--libs', '--cflags', name]
 		
 		# Check if we've already found this library
@@ -22,9 +21,10 @@ class command( Command.Command ):
 			self.set_instance( 'output', self[name] )
 			return
 		
-		# See if we need to add the MSVC option.  UGLY.
-		if self['compiler'].get_compiler() == 'msvc':
-			cmd.append( '--msvc-syntax' )
+		# See if we need to add the MSVC option.  Inflexible... >.>
+		if self.has_variable( 'compiler' ):
+			if self['compiler']['compiler'].name == 'msvc':
+				cmd.append( '--msvc-syntax' )
 		
 		self.env.output.start( 'Checking for {0}...'.format( name ))
 		process = subprocess.Popen( cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT )
@@ -39,9 +39,9 @@ class command( Command.Command ):
 		else:
 			self.env.output.success( 'found' )
 		
-		# Store our output
+		# Store our output, cutting off the trailing newline
 		self.set_static( name, result )
-		self.set_instance( 'options', self[name] )
+		self.set_instance( 'options', self[name][0:-2] )
 		
 	def __nonzero__( self ):
 		return not bool( subprocess.call( [self.path, '--exists', self['name']] ))

@@ -1,0 +1,15 @@
+name:			modules
+
+compiler:		%ccompiler
+
+module.compiler: $(compiler)
+
+mod1:			%module
+mod1.src:		[src/mod1.c]
+
+mod2:			%module
+mod2.src:		[src/mod2.c]
+
+mod:			%program
+mod.src:		[$(mod1) $(mod2) src/utils.c]
+mod.compiler:	$(compiler)

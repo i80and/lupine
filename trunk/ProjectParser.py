@@ -63,6 +63,9 @@ class ProjectFile:
 						curlist.append( data )					
 				elif data[0] == self.OBJECT:
 					# Create an object if this isn't a command name
+					if self.env.has_command( var ):
+						raise ParseExceptions.ReservedVariable( var )
+					
 					try:
 						self[var] = self.env.load_command( data[1:], var )
 					except Environment.NoSuchCommand as e:
@@ -75,9 +78,11 @@ class ProjectFile:
 					if len( var_objs ) > 1:
 						obj = '.'.join( var_objs[0:-1] )
 						if not self.env.has_command( obj ):
-							required_type = self[obj].attributes[var_objs[-1]]
-							if not isinstance( parsed_data, required_type ):
-								raise ParseExceptions.WrongDataType( var, required_type.__name__ )
+							# TODO: Use a method instead of a hash for this
+							if self[obj].attributes.has_key( var_objs[-1] ):
+								required_type = self[obj].attributes[var_objs[-1]]
+								if not isinstance( parsed_data, required_type ):
+									raise ParseExceptions.WrongDataType( var, required_type.__name__ )
 					else:
 						if self.env.has_command( var ):
 							raise ParseExceptions.ReservedVariable( var )

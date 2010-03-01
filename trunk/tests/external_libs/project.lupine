@@ -1,0 +1,14 @@
+name:				external_libs
+
+compiler:			%ccompiler
+
+ncurses:			%lib
+ncurses.headers:	[ncurses.h]
+ncurses.link:		[ncurses]
+ncurses.required:	True
+ncurses.compiler:	$(compiler)
+
+test:				%program
+test.libs:			[$(ncurses) m]
+test.src:			[src/*.c]
+test.compiler:		$(compiler)

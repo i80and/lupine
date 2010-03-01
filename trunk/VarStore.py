@@ -2,7 +2,7 @@ import re
 import ParseExceptions
 
 class VarStore( dict ):
-	var_regexp = re.compile( '\\$\\(([a-zA-Z_.\-]+)\\)' )
+	var_regexp = re.compile( '\\$\\(([a-zA-Z_0-9.\-]+)\\)' )
 
 	def __init__( self ):
 		dict.__init__( self )
@@ -34,7 +34,7 @@ class VarStore( dict ):
 		'Substitute any variables in a given string'
 		if not isinstance( value, basestring ):
 			return value
-		
+
 		var_matches = self.var_regexp.findall( value )
 		for match in var_matches:
 			varstr = '$({0})'.format( match )

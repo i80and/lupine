@@ -113,8 +113,12 @@ class Env:
 
 	def has_command( self, name ):
 		'Check if the given command exists'
-		# TODO: Make this more robust
-		return os.path.exists( 'commands/command_{0}.py'.format( name ))
+		try:
+			__import__( 'commands.command_{0}'.format( name ))
+		except ImportError:
+			return False
+		
+		return True
 
 	def load_command( self, name, prefix ):
 		'Return a command object of type name and with the supplied variable prefix'

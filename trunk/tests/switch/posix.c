@@ -1,0 +1,4 @@
+char* getos()
+{
+	return "POSIX";
+}
