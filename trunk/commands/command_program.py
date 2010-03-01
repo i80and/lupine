@@ -1,7 +1,7 @@
 import command_module
 import Command
 
-class command( Command.Command ):
+class command( command_module.command ):
 	name = 'program'
 	attributes = {	'src':list,
 					'options':basestring,
@@ -85,6 +85,5 @@ class command( Command.Command ):
 		
 		self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
 
-	
 	def __str__( self ):
 		return 'program'
