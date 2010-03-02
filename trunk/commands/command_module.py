@@ -26,6 +26,8 @@ class command( Command.Command ):
 	name = 'module'	
 	attributes = { 'src':list,
 					'options':basestring,
+					'headersearch':list,
+					'libs':list,
 					'define':list,
 					'depends':list,
 					'conflicts':list,
@@ -58,6 +60,19 @@ class command( Command.Command ):
 			else:
 				raise InvalidSourceError( srcfile, self.reference_name )
 
+		# Add header data
+		headersearch = []
+		if self.has_variable( 'headersearch' ):
+			for path in self['headersearch']:
+				if isinstance( path, basestring ):
+					headersearch.append( path )
+		
+		if self.has_variable( 'libs' ):
+			for lib in self['libs']:
+				if isinstance( lib, Command.Command ) and lib.name == 'lib':
+					if lib.has_variable( 'headersearch' ):
+						headersearch.extend( lib['headersearch'] )
+
 		# Set up raw compile options
 		options = []
 		if self.has_variable( 'options' ):
@@ -76,7 +91,7 @@ class command( Command.Command ):
 			objects.append( target )
 			escaped_src = self.env.escape_whitespace( srcfile )
 			
-			command = compiler.output_objcode( escaped_src, self['optimize'], [], options )
+			command = compiler.output_objcode( escaped_src, self['optimize'], headersearch, options )
 			deps = [self.env.escape_whitespace( dep ) for dep in self['compiler'].get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			

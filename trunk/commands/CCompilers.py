@@ -90,15 +90,31 @@ class cc:
 	
 	def test_header( self, header, paths ):
 		'Test to see if we can include a given header.'
-		# Stub
-		return True
+		src_name = '__lupine_test_{0}.c'.format( header )
+		src = open( src_name, 'w' )
+		src.write( '#include <{0}>\nint main(int argc,char** argv){{return 0;}}'.format( header ))
+		src.close()
+		
+		if not paths:
+			paths = []
+		
+		command = self.output_objcode( src_name, None, paths, '' )
+		command = command.split()
+		result = subprocess.call( command, stderr=subprocess.PIPE )
+		
+		# Remove our temp output file
+		try:
+			os.remove( src_name )
+			os.remove( self.name_obj( src_name ))
+		except OSError:
+			pass
+		
+		# 0 indicates success, but is technically False.  Fix that
+		return not bool( result )
 
 class gcc( cc ):
 	'GCC compiler driver'
 	name = 'gcc'
-	
-#	def output_shared( self, dest ):
-#		return '-shared -fPIC -o {0}.so'.format( dest )
 	
 	def optimize( self, level ):
 		if level == 'debug':

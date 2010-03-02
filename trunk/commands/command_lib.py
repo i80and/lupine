@@ -24,10 +24,12 @@ class command( Command.Command ):
 			self.result = self.check_headers()
 
 	def check( self, objs, msg, f ):
+		'Generic check method'
 		for x in objs:
 			self.env.output.start( msg.format( x ))
 			result = f( x )
 			
+			# Handle printing whether or not x was found
 			if not result:
 				if self['required']:
 					self.env.output.error( 'not found' )

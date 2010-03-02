@@ -42,9 +42,7 @@ class command( command_module.command ):
 		libsearch = []
 		if self.has_variable( 'libs' ):
 			for lib in self['libs']:
-				if isinstance( lib, basestring ):
-					libs.append( lib )
-				elif isinstance( lib, Command.Command ) and lib.name == 'lib':
+				if isinstance( lib, Command.Command ) and lib.name == 'lib':
 					libs.extend( lib['link'] )
 					if lib.has_variable( 'libsearch' ):
 						libsearch.extend( lib['libsearch'] )
@@ -76,6 +74,7 @@ class command( command_module.command ):
 			module = self[module_name]
 			module.set_instance( 'compiler', self['compiler'] )
 			module.set_instance( 'src', raw_source )
+			module.set_instance( 'libs', self['libs'] )
 			if self.has_variable( 'packages' ):
 				module.set_instance( 'packages', self['packages'] )
 			module.run()
