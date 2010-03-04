@@ -18,6 +18,11 @@ class command( command_module.command ):
 		if not self:
 			return
 
+		if self.has_variable( 'optimize' ):
+			optimize = self['optimize']
+		else:
+			optimize = ''
+
 		# Get our platform
 		self.set_child_command( 'platform', 'os' )
 
@@ -74,7 +79,8 @@ class command( command_module.command ):
 			module = self[module_name]
 			module.set_instance( 'compiler', self['compiler'] )
 			module.set_instance( 'src', raw_source )
-			module.set_instance( 'libs', self['libs'] )
+			if self.has_variable( 'libs' ):
+				module.set_instance( 'libs', self['libs'] )
 			if self.has_variable( 'packages' ):
 				module.set_instance( 'packages', self['packages'] )
 			module.run()
@@ -82,7 +88,7 @@ class command( command_module.command ):
 			modules.extend( module['output'] )
 		
 		target = self.env.escape_whitespace( compiler.name_program( target ))
-		command = compiler.output_program( modules, target, self['optimize'], libs, libsearch, [] )
+		command = compiler.output_program( modules, target, optimize, libs, libsearch, [] )
 		self.env.make.add_rule( target, modules, command, default=True )
 		
 		self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))

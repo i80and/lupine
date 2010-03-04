@@ -42,17 +42,25 @@ class command( Command.Command ):
 
 	def check_libs( self ):
 		'Check if we can link to the given libraries'
+		libsearch = []
+		if self.has_variable( 'libsearch' ):
+			libsearch = self['libsearch']
+		
 		if self.has_variable( 'link' ):
 			return self.check( self['link'],
 							'Checking for lib{0}...',
-							lambda x: self.compiler.test_lib( x, self['libsearch'] ))
+							lambda x: self.compiler.test_lib( x, libsearch ))
 			
 	def check_headers( self ):
 		'Check if we can include the given libraries'
+		headersearch = []
+		if self.has_variable( 'headersearch' ):
+			headersearch = self['headersearch']
+			
 		if self.has_variable( 'headers' ):
 			return self.check( self['headers'],
 							'Checking for {0}...',
-							lambda x: self.compiler.test_header( x, self['headersearch'] ))
+							lambda x: self.compiler.test_header( x, headersearch ))
 		
 	def __nonzero__( self ):
 		return self.result

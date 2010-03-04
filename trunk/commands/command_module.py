@@ -40,6 +40,11 @@ class command( Command.Command ):
 		if not self:
 			return
 		
+		if self.has_variable( 'optimize' ):
+			optimize = self['optimize']
+		else:
+			optimize = ''
+		
 		# Set up the compiler
 		if not self['compiler']:
 			raise NoCompiler( self.reference_name )
@@ -91,7 +96,7 @@ class command( Command.Command ):
 			objects.append( target )
 			escaped_src = self.env.escape_whitespace( srcfile )
 			
-			command = compiler.output_objcode( escaped_src, self['optimize'], headersearch, options )
+			command = compiler.output_objcode( escaped_src, optimize, headersearch, options )
 			deps = [self.env.escape_whitespace( dep ) for dep in self['compiler'].get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			
@@ -100,15 +105,18 @@ class command( Command.Command ):
 		self.set_instance( 'output', objects )
 
 	def __nonzero__( self ):
-		if self['depends']:
-			for dep in self['depends']:
-				if not dep:
-					return False
+		try:
+			if self.has_variable( 'depends' ) and self['depends']:
+				for dep in self['depends']:
+					if not dep:
+						return False
 		
-		if self['conflicts']:
-			for conflict in self['conflicts']:
-				if conflict:
-					return False
+			if self.has_variable( 'conflicts' ) and self['conflicts']:
+				for conflict in self['conflicts']:
+					if conflict:
+						return False
+		except KeyError:
+			return False
 		
 		return True
 	

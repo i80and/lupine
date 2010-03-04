@@ -69,8 +69,7 @@ class Command:
 			# Then check if this command has a static variable
 			value = self.env[static_name]
 		else:
-			return None
-			#raise KeyError, key
+			raise KeyError, key
 		
 		return value
 
