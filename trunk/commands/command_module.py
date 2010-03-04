@@ -104,21 +104,5 @@ class command( Command.Command ):
 
 		self.set_instance( 'output', objects )
 
-	def __nonzero__( self ):
-		try:
-			if self.has_variable( 'depends' ) and self['depends']:
-				for dep in self['depends']:
-					if not dep:
-						return False
-		
-			if self.has_variable( 'conflicts' ) and self['conflicts']:
-				for conflict in self['conflicts']:
-					if conflict:
-						return False
-		except KeyError:
-			return False
-		
-		return True
-	
 	def __str__( self ):
 		return 'module'

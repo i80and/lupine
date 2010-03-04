@@ -1,7 +1,7 @@
 import command_module
 import Command
 
-class command( command_module.command ):
+class command( Command.Command ):
 	name = 'program'
 	attributes = {	'src':list,
 					'options':basestring,

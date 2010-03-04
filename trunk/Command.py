@@ -55,7 +55,20 @@ class Command:
 		return self.env.has_variable( instance_name ) or self.env.has_variable( static_name )
 
 	def __nonzero__( self ):
-		'Evaluate whether this command object is true or false.  Should be overridden.'
+		'Evaluate whether this command object is true or false.  May be over-ridden.'
+		try:
+			if self.has_variable( 'depends' ) and self['depends']:
+				for dep in self['depends']:
+					if not dep:
+						return False
+		
+			if self.has_variable( 'conflicts' ) and self['conflicts']:
+				for conflict in self['conflicts']:
+					if conflict:
+						return False
+		except KeyError:
+			return False
+		
 		return True
 	
 	def __getitem__( self, key ):
