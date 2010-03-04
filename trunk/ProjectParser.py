@@ -12,6 +12,13 @@ class ProjectFile:
 	OBJECT = '%'
 	# Denotes an attribute of an object
 	ATTR = '.'
+	# No-op
+	COMMENT = '#'
+	# Textual token
+	STRING = '"'
+
+	# Regular expression to aid in parsing multi-word strings inside lists
+	STRING_PAT = re.compile( ' "(.*)" |\s' )
 
 	def __init__( self, path, env ):
 		# Check argument types
@@ -19,157 +26,110 @@ class ProjectFile:
 			raise TypeError, path
 
 		self.env = env
+
+		# We use a two-stage parse: first stage assembles every assignment
+		# into a single line (collapsing multi-line lists and strings), and
+		# then the second stage performs the assignments.
 		
-		# List processing variables
-		# liststart is needed for potential debugging in case the user forgets
-		# to close a list.
-		liststart = ''
-		curlist = []
-		value = None
-		
-		# Open the project file
+		# TODO: Need a faster parser that can handle multi-line strings properly
 		f = open( path, 'r' )
-		for line in f.readlines():
-			# Skip empties and comments
-			line = line.strip()
-			if( not len( line ) or line[0] == '#' ):
-				continue
-
-			if not curlist:
-				# What to do if we're not in the middle of parsing a list
-				splitline = line.split( ':', 1 )
-				splitline = [lineseg.strip() for lineseg in splitline]
-
-				# No assignment is taking place here; shouldn't just
-				# skip over it because it's probably a typo
-				if len( splitline ) <= 1 or not splitline[1]:
-					raise ParseExceptions.ParseError, var
-
-				var = splitline[0]
-				data = splitline[1]
-								
-				if data[0] == self.LIST[0]:
-					# Start a list
-					# See if it's all on this line
-					if data[-1] == self.LIST[1]:
-						try:
-							self[var] = self.parseList( data )
-						except ParseExceptions.UnclosedString as e:
-							e.set_location( 'In assignment: {0}'.format( liststart ))
-							raise e
-
-					else:
-						liststart = var
-						curlist.append( data )					
-				elif data[0] == self.OBJECT:
-					# Create an object if this isn't a command name
-					if self.env.has_command( var ):
-						raise ParseExceptions.ReservedVariable( var )
-					
-					try:
-						self[var] = self.env.load_command( data[1:], var )
-					except Environment.NoSuchCommand as e:
-						raise ParseExceptions.UnknownCommand( e.command, splitline[0] )
-				else:
-					# Just a plain value					
-					# If this is an object attribute, check it for validity
-					var_objs = var.split( '.' )
-					parsed_data = self.parseValue( data )
-					if len( var_objs ) > 1:
-						obj = '.'.join( var_objs[0:-1] )
-						if not self.env.has_command( obj ):
-							# TODO: Use a method instead of a hash for this
-							if self[obj].attributes.has_key( var_objs[-1] ):
-								required_type = self[obj].attributes[var_objs[-1]]
-								if not isinstance( parsed_data, required_type ):
-									raise ParseExceptions.WrongDataType( var, required_type.__name__ )
-					else:
-						if self.env.has_command( var ):
-							raise ParseExceptions.ReservedVariable( var )
-					
-					self[var] = parsed_data
-			else:
-				# We are in fact inside a list definition
-				curlist.append( line )
-				
-				if line[-1] == self.LIST[1]:
-					# End and parse a list
-					try:
-						self[liststart] = self.parseList( ' '.join( curlist ))
-					except ParseExceptions.UnclosedString as e:
-						e.set_location( 'In assignment: {0}'.format( liststart ))
-						raise e
-					curlist = []
-
-		# Check for unended lists
-		if curlist:
-			raise ParseExceptions.UnclosedList( 'In assignment: {0}'.format( liststart ))
-		
+		lines = self.collapse( f )
 		f.close()
+		self.parse( lines )
+				
+	def parse( self, lines ):
+		'Parse list of lines into a ProjectFile'
+		for line in lines:
+			line = line.strip()
+			
+			if not line or line[0] == self.COMMENT:
+				continue
+			
+			splitline = line.split( ':' )
+			
+			# Make sure this line has a proper assignment
+			if len( splitline ) < 2 or not splitline[1]:
+				raise ParseExceptions.InvalidAssignment( line )
+			
+			var = splitline[0].strip()
+			data = splitline[1].strip()
+			
+			self[var] = self.parse_data( var, data )
+			
+	def collapse( self, f ):
+		'Collapse every assignment into a its own single line'
+		lines = []
+		buffer = []
+		while True:
+			line = f.readline()
+			if not line:
+				break
+			
+			line = line[:-1]
+			
+			# Buffer multi-line entries.  There are two cases this must take
+			# place: a single double quote, or a single list-open
+			open = line.find( self.LIST[0] )
+			close = line.find( self.LIST[1], open+1 )
+			
+			if buffer:
+				buffer.append( line )
+				
+				if close >= 0:
+					# Close this and append it
+					lines.append( ' '.join( buffer ))
+					buffer = []
+			
+				continue
+			
+			if ( open >= 0 and close < 0 ):
+				# Open this list
+				buffer.append( line )
+				continue
+			
+			lines.append( line )
 		
-	def parseValue( self, val ):
-		'Parse a string value into a Python type.'
-		if not isinstance( val, basestring ):
-			raise TypeError, val
-		
-		# Lowercase it, check for boolean
-		testVal = val.lower()
-		if testVal == 'true':
+		return lines
+
+	def parse_data( self, var, data ):
+		'Parse a string of data into a Python object'
+		if data[0] == self.LIST[0]:
+			# List			
+			end = data.find( self.LIST[1] )
+			data = self.STRING_PAT.split( data[1:end] )
+			result = []
+			
+			for element in data:
+				if element:
+					result.append( self.parse_data( var, element ))
+			
+			return result
+		elif data[0] == self.STRING:
+			# String
+			return data[1:-1]
+		elif data[0] == self.OBJECT:
+			# Load in a command object
+			command = data[1:]
+			try:
+				return self.env.load_command( command, var )
+			except Environment.NoSuchCommand as e:
+				raise ParseExceptions.UnknownCommand( e.command, command )
+
+		# Scaler of some kind; test boolean
+		test = data.lower()
+		if test == 'true':
 			return True
-		elif testVal == 'false':
+		elif test == 'false':
 			return False
 		
-		# Check for numerical value
+		# Number?
 		try:
-			return float( val )
+			return float( test )
 		except ValueError:
 			pass
 		
-		# See if it is encased in quotes; if so, strip them off
-		if val[0] == '"' and val[-1] == '"':
-			return val[1:-1]
-		
-		# It's probably a string; just return it raw
-		return val
-
-	def parseList( self, value ):
-		'Parse a string into a whitespace-seperated list.'
-		# Chop off the starting and ending list markers
-		value = value.strip()[1:-1].strip()
-		
-		# Do a simple split
-		values = self.list_regexp.split( value )
-
-		# Accumulate, keeping quotes in mind
-		# TODO: Quote escaping of some form
-		# TODO: Allow list nesting
-		results = []
-		accumulater = []
-		for entry in values:
-			if not entry:
-				continue
-		
-			# Check for the start of a jumbo token
-			if( entry[0] == '"' ):
-				accumulater = [entry[1:]]
-			elif accumulater:
-				if( entry[-1] == '"' ):
-					# Append this token sans ending quote, and add the whole thing
-					end_index = len( entry ) - 1
-					accumulater.append( entry[0:end_index] )
-					results.append( ' '.join( accumulater ))
-					accumulater = []
-				else:
-					# Append this token, don't strip off anything
-					accumulater.append( entry )
-			else:
-				results.append( self.parseValue( entry ))
-		
-		# Check for quotes that are still open
-		if accumulater:
-			raise ParseExceptions.UnclosedString()
-
-		return results
+		# Plain string
+		return data
 
 	@property
 	def variables( self ):

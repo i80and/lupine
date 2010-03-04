@@ -5,6 +5,13 @@ class ParseError( Exception ):
 	def __str__( self ):
 		return self.msg
 
+class InvalidAssignment( ParseError ):
+	def __init__( self, msg='' ):
+		self.msg = 'Invalid assignment{0}'
+
+		if msg:
+			self.msg = self.msg.format( ': ' + msg )
+
 class UnclosedString( ParseError ):
 	def __init__( self, msg='' ):
 		self.msg = 'String never closed'
