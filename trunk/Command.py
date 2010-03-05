@@ -21,7 +21,6 @@ class CommandMissingOption( CommandError ):
 class Command:
 	'Abstract class representing a command object.'
 	name = None
-	attributes = {}
 	
 	def __init__( self, env, var_name ):
 		self.reference_name = var_name

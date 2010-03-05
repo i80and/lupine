@@ -2,6 +2,12 @@ import subprocess
 import Command
 
 class command( Command.Command ):
+	'''%pkgconfig - Represent a pkg-config library.
+Valid options:
+  * name - Name of the package to check for
+  * required - Whether or not this library is required to exist
+'''
+
 	name = 'pkgconfig'
 	attributes = {'name': basestring,
 					'required':bool

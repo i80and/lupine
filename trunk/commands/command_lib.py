@@ -2,16 +2,22 @@ import command_module
 import Command
 
 class command( Command.Command ):
+	'''%lib - Define a library with shared libs and headers.
+Valid options:
+  * compiler - Compiler to use when testing
+  * link - List of libraries to link against
+  * libsearch - List of places to search for libraries in
+  * headers - List of headers to check for
+  * headersearch - List of places to check for headers in
+  * required - Boolean of whether or not this library is required to exist or not
+'''
 	name = 'lib'
-	attributes = {'link':list,
-					'libsearch': list,
-					'headers': list,
-					'headersearch': list,
-					'required': bool
-				}
-	
+
 	def run( self ):
 		'Check for the headers and shared objects for this library'
+		# Verify to make sure we have valid options
+		self.verify()
+
 		# If no compiler is specified, fail
 		if not self.has_variable( 'compiler' ):
 			raise command_module.NoCompiler( self.reference_name )
@@ -42,9 +48,7 @@ class command( Command.Command ):
 
 	def check_libs( self ):
 		'Check if we can link to the given libraries'
-		libsearch = []
-		if self.has_variable( 'libsearch' ):
-			libsearch = self['libsearch']
+		libsearch = self['libsearch']
 		
 		if self.has_variable( 'link' ):
 			return self.check( self['link'],
@@ -53,14 +57,30 @@ class command( Command.Command ):
 			
 	def check_headers( self ):
 		'Check if we can include the given libraries'
-		headersearch = []
-		if self.has_variable( 'headersearch' ):
-			headersearch = self['headersearch']
+		headersearch = self['headersearch']
 			
 		if self.has_variable( 'headers' ):
 			return self.check( self['headers'],
 							'Checking for {0}...',
 							lambda x: self.compiler.test_header( x, headersearch ))
+
+	def verify( self ):
+		'Verify options'
+		# Required options
+		if not self.has_variable( 'compiler' ):
+			raise Command.CommandMissingOption( self.name, 'compiler' )
+		
+		# Type checks
+		for option in ['link', 'libsearch', 'headers', 'headersearch']:
+			if self.has_variable( option ):
+				if not isinstance( self[option], list ):
+					self[option] = [self[option]]
+			else:
+				self[option] = []
+		
+		if self.has_variable( 'required' ):
+			if not isinstance( self['required'], bool ):
+				self['required'] = True
 		
 	def __nonzero__( self ):
 		return self.result

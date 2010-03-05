@@ -2,6 +2,12 @@ import os
 import Command
 
 class command( Command.Command ):
+	'''%platform - Represent the current platform, and give information on it.
+Valid options:
+  * unsupported - List of unsupported platforms
+  * supported - List of exclusively-supported platforms
+'''
+
 	name = 'platform'
 	attributes = {'supported': list, 'unsupported': list}
 	

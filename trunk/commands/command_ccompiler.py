@@ -14,12 +14,13 @@ class SourceNotFound( Command.CommandError ):
 	pass
 
 class command( Command.Command ):
+	'''%ccompiler - Look for and represent an installed C compiler.
+Valid options:
+  * compilers - Ordering of preferred compilers
+  * whitelist - List of exclusively-working compilers
+  * blacklist - List of banned compilers
+'''
 	name = 'ccompiler'
-	attributes = {	'compilers':list,
-					'whitelist':list,
-					'blacklist':list
-				}
-
 	compiler_hash = {
 		'posix': [CCompilers.clang, CCompilers.gcc],
 		'default': [CCompilers.cc]

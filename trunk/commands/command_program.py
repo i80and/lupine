@@ -2,15 +2,16 @@ import command_module
 import Command
 
 class command( Command.Command ):
+	'''%program - Represent a C-like program.
+Valid options:
+  * compiler - Compiler to use
+  * src - List of modules to link.  Any raw source will be passed to a sub-module
+  * options - Raw options to pass to the compiler
+  * target - Output name
+  * libs - List of %lib targets to link to/include
+  * define - Macros to define inline
+'''
 	name = 'program'
-	attributes = {	'src':list,
-					'options':basestring,
-					'target':basestring,
-					'libs':list,
-					'define':list,
-					'depends':list,
-					'conflicts':list
-				}
 				
 	def run( self ):
 		'The actual execution stage.'

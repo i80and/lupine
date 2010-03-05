@@ -23,16 +23,18 @@ class InvalidSource( Command.CommandError ):
 		return self.msg
 
 class command( Command.Command ):
+	'''%module - Represent a source module in a program.
+Valid options:
+  * compiler - Compiler to use
+  * src - List of modules to link.  Any raw source will be passed to a sub-module
+  * options - Raw options to pass to the compiler
+  * headersearch - Places to search for headers in
+  * libs - List of %lib targets to link to/include
+  * define - Macros to define inline
+  * packages - List of pkg-config packages to use
+'''
+
 	name = 'module'	
-	attributes = { 'src':list,
-					'options':basestring,
-					'headersearch':list,
-					'libs':list,
-					'define':list,
-					'depends':list,
-					'conflicts':list,
-					'packages':list
-				}
 				
 	def run( self ):
 		'The actual execution stage.'
