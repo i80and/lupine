@@ -52,7 +52,7 @@ class Command:
 		static_name = self.env.vars.var_name( self.name, var )
 
 		return self.env.has_variable( instance_name ) or self.env.has_variable( static_name )
-
+	
 	def __nonzero__( self ):
 		'Evaluate whether this command object is true or false.  May be over-ridden.'
 		try:

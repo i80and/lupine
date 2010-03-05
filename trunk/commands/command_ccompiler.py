@@ -152,6 +152,9 @@ Valid options:
 					queue.append( os.path.join( os.path.split( dep )[0], potential_dep[1] ))
 		
 		return output.keys()
+		
+	def config_header( self ):
+		return self['compiler'].name
 			
 	def __str__( self ):
 		return 'CCompiler'

@@ -1,0 +1,23 @@
+name:			Basic
+
+compiler:		%ccompiler
+
+tar:			%lib
+tar.compiler:	$(compiler)
+tar.headers:	[tar.h]
+
+foo:			%lib
+foo.compiler:	$(compiler)
+foo.required:	False
+foo.headers:	[_foo.h]
+
+config_header:	%config
+config_header.options: [
+	HAVE_TAR_H $(tar)
+	HAVE_FOO_H $(foo)
+	COMPILER $(compiler)
+]
+
+basic:			%program
+basic.compiler:	$(compiler)
+basic.src:		[*.c]

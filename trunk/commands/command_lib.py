@@ -81,6 +81,11 @@ Valid options:
 		if self.has_variable( 'required' ):
 			if not isinstance( self['required'], bool ):
 				self['required'] = True
+		else:
+			self['required'] = True
+
+	def config_header( self ):
+		return bool( self )
 		
 	def __nonzero__( self ):
 		return self.result
