@@ -86,6 +86,9 @@ class Command:
 		
 		return value
 
+	def __setitem__( self, key, value ):
+		self.set_instance( key, value )
+
 	def __str__( self ):
 		result = {}
 		for element in self.instance:
