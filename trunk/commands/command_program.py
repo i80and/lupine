@@ -1,7 +1,6 @@
-import command_module
-import Command
+import LinkedTargetGenerator
 
-class command( Command.Command ):
+class command( LinkedTargetGenerator.LinkedTargetGenerator ):
 	'''%program - Represent a C-like program.
 Valid options:
   * compiler - Compiler to use
@@ -9,90 +8,10 @@ Valid options:
   * options - Raw options to pass to the compiler
   * target - Output name
   * libs - List of %lib targets to link to/include
-  * define - Macros to define inline
 '''
 	name = 'program'
-				
-	def run( self ):
-		'The actual execution stage.'
-		# Check for our deps and conflicts
-		if not self:
-			return
-
-		if self.has_variable( 'optimize' ):
-			optimize = self['optimize']
-		else:
-			optimize = ''
-
-		# Get our platform
-		self.set_child_command( 'platform', 'os' )
-
-		# Set up our compiler
-		if not self['compiler']:
-			raise command_module.NoCompiler( self.reference_name )
-			
-		compiler = self['compiler']['compiler']
-
-		# If we aren't given a target, just use our reference name
-		if self.has_variable( 'target' ):
-			target = self['target']
-		else:
-			target = self.reference_name
-
-		# Check for modules to link in
-		if not self.has_variable( 'src' ):
-			raise command_module.NoSourceError( self.reference_name )
-		
-		# Add linking data
-		libs = []
-		libsearch = []
-		if self.has_variable( 'libs' ):
-			for lib in self['libs']:
-				if isinstance( lib, Command.Command ) and lib.name == 'lib':
-					libs.extend( lib['link'] )
-					if lib.has_variable( 'libsearch' ):
-						libsearch.extend( lib['libsearch'] )
-		
-		# Set up raw compile options
-		options = []
-		if self.has_variable( 'options' ):
-			options = [self['options']]
-		
-		if self.has_variable( 'packages' ):
-			for package in self['packages']:
-				options.append( package['options'] )
-		
-		options = ' '.join( options )
-				
-		# Look through the source, extracting and creating modules as needed
-		modules = []
-		raw_source = []
-		for srcfile in self['src']:
-			if isinstance( srcfile, basestring ):
-				raw_source.append( srcfile )
-			else:
-				modules.extend( srcfile['output'] )
-		
-		# If there are source files in our list, compile them into a module
-		if raw_source:
-			module_name = '__module'
-			self.set_child_command( 'module', module_name )
-			module = self[module_name]
-			module.set_instance( 'compiler', self['compiler'] )
-			module.set_instance( 'src', raw_source )
-			if self.has_variable( 'libs' ):
-				module.set_instance( 'libs', self['libs'] )
-			if self.has_variable( 'packages' ):
-				module.set_instance( 'packages', self['packages'] )
-			module.run()
-			
-			modules.extend( module['output'] )
-		
-		target = self.env.escape_whitespace( compiler.name_program( target ))
-		command = compiler.output_program( modules, target, optimize, libs, libsearch, [] )
-		self.env.make.add_rule( target, modules, command, default=True )
-		
-		self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
+	compilation_method = 'output_program'
+	target_name_gen = 'name_program'
 
 	def __str__( self ):
 		return 'program'

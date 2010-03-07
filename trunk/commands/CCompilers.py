@@ -12,6 +12,9 @@ class cc:
 
 	def name_program( self, name ):
 		return os.path.splitext( name )[0]
+
+	def name_shared( self, name ):
+		return '{0}.so'.format( os.path.splitext( name )[0] )
 	
 	def optimize( self, level ):
 		return ''
@@ -41,12 +44,14 @@ class cc:
 		
 		if options:
 			command.append( options )
-			
+
 		return ' '.join( command )
 
-	def output_objcode( self, src, optimize, include_paths, options ):
+	def output_objcode( self, src, optimize, include_paths, pic, options ):
 		'Create a command to output object code.'
 		output = self.name_obj( src )
+		if pic:
+			options += ' -fPIC'
 		
 		include_paths = ['-I{0}'.format( path ) for path in include_paths]
 		include_paths = ' '.join( include_paths )
@@ -65,7 +70,7 @@ class cc:
 	def output_shared( self, src, target, optimize, libs, lib_paths, options ):
 		'Create a command to output a library.'
 		# TODO: This is cheap.  I think we should use libtool or something?
-		options += ' -shared -fPIC'
+		options += ' -shared'
 		return self.output_program( src, target, optimize, libs, lib_paths, options )
 
 	def test_lib( self, libname, paths ):

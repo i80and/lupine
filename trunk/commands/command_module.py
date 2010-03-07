@@ -30,7 +30,7 @@ Valid options:
   * options - Raw options to pass to the compiler
   * headersearch - Places to search for headers in
   * libs - List of %lib targets to link to/include
-  * define - Macros to define inline
+  * pic - Compile as position-independent; required for shared libraries.
   * packages - List of pkg-config packages to use
 '''
 
@@ -38,6 +38,8 @@ Valid options:
 				
 	def run( self ):
 		'The actual execution stage.'
+		self.verify()
+		
 		# Check for our deps and conflicts
 		if not self:
 			return
@@ -57,9 +59,6 @@ Valid options:
 		self.set_child_command( 'platform', 'os' )
 		
 		# Check for source and expand wildcards
-		if not self['src']:
-			raise NoSourceError( self.reference_name )
-		
 		src = []
 		for srcfile in self['src']:
 			if isinstance( srcfile, basestring ):
@@ -98,13 +97,20 @@ Valid options:
 			objects.append( target )
 			escaped_src = self.env.escape_whitespace( srcfile )
 			
-			command = compiler.output_objcode( escaped_src, optimize, headersearch, options )
+			command = compiler.output_objcode( escaped_src, optimize, headersearch, self['pic'], options )
 			deps = [self.env.escape_whitespace( dep ) for dep in self['compiler'].get_deps( srcfile )]
 			self.env.make.add_rule( target, deps, command )
 			
 			self.env.make.add_clean( '{0} {1}'.format( self['os']['delete'], target ))
 
 		self.set_instance( 'output', objects )
+
+	def verify( self ):
+		if not self.has_variable( 'src' ):
+			raise NoSourceError( self.reference_name )
+		
+		if not self.has_variable( 'pic' ):
+			self['pic'] = False
 
 	def __str__( self ):
 		return 'module'
