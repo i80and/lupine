@@ -25,7 +25,7 @@ Valid options:
 			raise Command.CommandMissingOption( self.name, 'options' )
 		
 		if not isinstance( self['options'], list ):
-			self.set_instance( 'options', [self['options'] )
+			self.set_instance( 'options', [self['options']] )
 	
 	def __str__( self ):
 		return self.name

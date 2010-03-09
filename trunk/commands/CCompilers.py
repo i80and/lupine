@@ -43,7 +43,7 @@ class cc:
 			command.append( libs )
 		
 		if options:
-			command.append( options )
+			command.append( ' '.join( options ))
 
 		return ' '.join( command )
 
@@ -51,7 +51,7 @@ class cc:
 		'Create a command to output object code.'
 		output = self.name_obj( src )
 		if pic:
-			options += ' -fPIC'
+			options.append( '-fPIC' )
 		
 		include_paths = ['-I{0}'.format( path ) for path in include_paths]
 		include_paths = ' '.join( include_paths )
@@ -70,7 +70,7 @@ class cc:
 	def output_shared( self, src, target, optimize, libs, lib_paths, options ):
 		'Create a command to output a library.'
 		# TODO: This is cheap.  I think we should use libtool or something?
-		options += ' -shared'
+		options.append( '-shared' )
 		return self.output_program( src, target, optimize, libs, lib_paths, options )
 
 	def test_lib( self, libname, paths ):
@@ -80,7 +80,7 @@ class cc:
 		if not paths:
 			paths = []
 		
-		command = self.output_shared( [], output_name, None, [libname], paths, '' )
+		command = self.output_shared( [], output_name, None, [libname], paths, [] )
 		command = command.split()
 		result = subprocess.call( command, stderr=subprocess.PIPE )
 		
@@ -103,7 +103,7 @@ class cc:
 		if not paths:
 			paths = []
 		
-		command = self.output_objcode( src_name, None, paths, '' )
+		command = self.output_objcode( src_name, None, paths, False, [] )
 		command = command.split()
 		result = subprocess.call( command, stderr=subprocess.PIPE )
 		

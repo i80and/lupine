@@ -88,8 +88,6 @@ Valid options:
 			for package in self['packages']:
 				options.append( package['options'] )
 		
-		options = ' '.join( options )
-
 		# Create our object-code rules
 		objects = []
 		for srcfile in src:

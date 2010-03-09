@@ -60,8 +60,6 @@ class LinkedTargetGenerator( Command.Command ):
 			for package in self['packages']:
 				options.append( package['options'] )
 		
-		options = ' '.join( options )
-				
 		# Look through the source, extracting and creating modules as needed
 		modules = []
 		raw_source = []
@@ -85,7 +83,7 @@ class LinkedTargetGenerator( Command.Command ):
 		# Generically call whatever's needed to output the appropriate
 		# linked result.
 		compilation_command = getattr( compiler, self.compilation_method )
-		command = compilation_command( modules, target, optimize, libs, libsearch, '' )
+		command = compilation_command( modules, target, optimize, libs, libsearch, options )
 		
 		self.env.make.add_rule( target, modules, command, default=True )
 		
