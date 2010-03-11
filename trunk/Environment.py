@@ -135,7 +135,7 @@ class Env:
 				command = getattr( getattr( __import__( full_module, Command ), module ), 'command' )
 			except AttributeError:
 				raise NoSuchCommand( name )
-		except ImportError:
+		except ImportError as e:
 			# This is too broad of a catch
 			raise NoSuchCommand( name )
 		

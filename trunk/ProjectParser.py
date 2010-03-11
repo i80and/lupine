@@ -113,7 +113,7 @@ class ProjectFile:
 			try:
 				return self.env.load_command( command, var )
 			except Environment.NoSuchCommand as e:
-				raise ParseExceptions.UnknownCommand( e.command, command )
+				raise ParseExceptions.UnknownCommand( e.command, var )
 
 		# Scaler of some kind; test boolean
 		test = data.lower()

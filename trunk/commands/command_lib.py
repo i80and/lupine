@@ -1,4 +1,4 @@
-import command_module
+import LinkedTargetGenerator
 import Command
 
 class command( Command.Command ):
@@ -20,7 +20,7 @@ Valid options:
 
 		# If no compiler is specified, fail
 		if not self.has_variable( 'compiler' ):
-			raise command_module.NoCompiler( self.reference_name )
+			raise LinkedTargetGenerator.NoCompiler( self.reference_name )
 		
 		self.compiler = self['compiler']['compiler']	
 		

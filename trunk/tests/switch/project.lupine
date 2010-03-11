@@ -1,20 +1,19 @@
 name:			switch
 
 compiler:		%ccompiler
-module.compiler:$(compiler)
 
 os:				%platform
 
-posix:			%module
-posix.src:		[posix.c]
+posix:			%list
+posix.contents:	[posix.c]
 posix.depends:	[$(os.posix)]
 
-windows:		%module
-windows.src:	[windows.c]
+windows:		%list
+windows.contents:[windows.c]
 windows.depends:[$(os.windows)]
 
-generic:		%module
-generic.src:	[generic.c]
+generic:		%list
+generic.contents:[generic.c]
 generic.conflicts:[$(os.windows) $(os.posix)]
 
 os-info:		%switch
