@@ -1,15 +1,10 @@
-name:				external_libs
+def configure( env ):
+	pass
 
-compiler:			%ccompiler
+def build( env, args ):
+	compiler = env.load( 'ccompiler' )
+	
+	ncurses = compiler.lib( 'ncurses', headers=['ncurses.h'], libs=['ncurses'] )
+	glib = env.load( 'pkgconfig', compiler=compiler, pkg='glib-2.0' )
 
-
-ncurses:			%lib
-ncurses.headers:	[ncurses.h]
-ncurses.link:		[ncurses]
-ncurses.compiler:	$(compiler)
-
-test:				%program
-test.libs:			[$(ncurses)]
-test.src:			[src/*.c]
-test.compiler:		$(compiler)
-test.depends:		[$(ncurses)]
+	test = compiler.program( 'test', ['src/*.c'], libs=[ncurses,glib] )

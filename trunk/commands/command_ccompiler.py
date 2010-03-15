@@ -1,26 +1,26 @@
 import re
 import os.path
-import Command
+import glob
+
+import LinkedTarget
+import Lib
 import CCompilers
 
-class NoCompilerFound( Command.CommandError ):
+class CompilerError( Exception ):
+	def __init__( self, msg='' ):
+		self.msg = msg
+
+class SourceNotFound( CompilerError ):
 	def __str__( self ):
-		if self.msg:
-			return 'Cannot find C compiler: {0}'.format( self.msg )
-		else:
-			return 'Cannot find C compiler.'
+		return 'Source file not found: {0}'.format( self.msg )
 
-class SourceNotFound( Command.CommandError ):
-	pass
-
-class command( Command.Command ):
-	'''%ccompiler - Look for and represent an installed C compiler.
+class ccompiler:
+	'''ccompiler - Look for and represent an installed C compiler.
 Valid options:
   * compilers - Ordering of preferred compilers
   * whitelist - List of exclusively-working compilers
   * blacklist - List of banned compilers
 '''
-	name = 'ccompiler'
 	compiler_hash = {
 		'posix': [CCompilers.clang, CCompilers.gcc],
 		'default': [CCompilers.cc]
@@ -28,31 +28,27 @@ Valid options:
 
 	_dep_pat = re.compile( '(?:#include|#import) (<|")(.+)(?:>|")', re.M )
 	
-	def run( self ):
+	def __init__( self, env, compilers=[], whitelist=[], blacklist=[] ):
 		'The actual execution stage.'
-		self.setup()
+		self.env = env
+		self.setup( compilers, whitelist, blacklist )
 	
-	def setup( self ):
+	def setup( self, compilers, whitelist, blacklist ):
 		'Find a working compiler and other such initial setup tasks'	
-		# If we've already found which compiler we need, just instantiate it
-		if self.has_variable( 'compiler' ):
-			self.set_child_command( self['compiler'], 'compiler' )
-			return
-			
-		self.set_child_command( 'platform', 'os' )
+		self.os = self.env.load( 'platform' )
+		self.optimize = 1
 		
 		# Look for an installed and supported compiler
-		self.env.output.start( 'Looking for the {0} C compiler...'.format( self.reference_name ))
+		self.env.output.start( 'Looking for a C compiler...' )
 		compilers = self.find_compilers()
 		
-		if self.has_variable( 'compilers' ):
+		if compilers:
 			# Re-sort the compilers based on a user-provided preference
 			# TODO: Make this sorting process cleaner.  This is just ugly.
-			preferred = self['compilers']
 			new_compilers = []
 			
 			# Add the preferred
-			for preferred_compiler in preferred:
+			for preferred_compiler in compilers:
 				for compiler in compilers:
 					if compiler[0].name == preferred_compiler:
 						new_compilers.append( compiler )
@@ -65,35 +61,29 @@ Valid options:
 			
 			compilers = new_compilers
 		
-		if self.has_variable( 'whitelist' ):
+		if whitelist:
 			# Remove any compilers not in the whitelist
-			whitelist = self['whitelist']
 			compilers = [compiler for compiler in compilers if compiler[0].name in whitelist]
-				
-		if self.has_variable( 'blacklist' ):
+			
+		if blacklist:	
 			# Remove any compilers in the blacklist
-			blacklist = self['blacklist']
 			compilers = [compiler for compiler in compilers if not compiler[0].name in blacklist]
 
 		if len( compilers ) == 0:
-			raise NoCompilerFound( self.name, self.reference_name )
+			self.env.output.error( 'No compiler found' )
 
 		# The compilers are sorted in order of decreasing preference; choose the first.
 		compiler = compilers[0][0]
 		self.env.output.success( compilers[0][1] )
 		
-		# Set up our Make macros
-		self.env.make.add_macro( 'CC', compilers[0][1] )
-
-		# Instantiate the compiler		
-		self.set_instance( 'compiler', compiler() )
+		self.compiler = compiler()		
 
 		# Store the path to the compiler
-		self['compiler'].path = compilers[0][1]
+		self.compiler.path = compilers[0][1]
 			
 	def find_compilers( self ):
 		'Find a supported compiler.'
-		os = self['os']['os']
+		os = self.os.os
 		available_compilers = []
 		
 		if os[1]:
@@ -137,7 +127,8 @@ Valid options:
 			try:
 				f = open( dep, 'r' )
 			except IOError:
-				raise SourceNotFound( self.name, 'Source file {0} not found'.format( dep ))
+				self.env.output.error( 'Source file {0} not found'.format( dep ))
+
 			# Look for the pattern
 			potential_deps = self._dep_pat.findall( f.read())
 			f.close()
@@ -152,9 +143,43 @@ Valid options:
 					queue.append( os.path.join( os.path.split( dep )[0], potential_dep[1] ))
 		
 		return output.keys()
+
+	def program( self, target, src, **args ):
+		'Return a target describing an executable program'
+		if not isinstance( target, basestring ):
+			raise TypeError, target
 		
+		target = self.compiler.name_program( target )
+		linked = LinkedTarget.LinkedTarget( self.env, src, target, self, False, **args )
+		self.env[target] = linked
+		return linked
+	
+	def shared( self, target, src, **args ):
+		'Return a target describing a shared library'
+		if not isinstance( target, basestring ):
+			raise TypeError, target
+		
+		target = self.compiler.name_program( target )
+		linked = LinkedTarget.LinkedTarget( self.env, src, target, self, True, **args )
+		self.env[target] = linked
+		return linked
+
+	def lib( self, name, required=True, **args ):
+		self.env.output.start( 'Checking for {0}'.format( name ))
+		lib = Lib.Library(  self, **args )
+		if lib:
+			self.env.output.success( 'found' )
+		else:
+			if required:
+				self.env.output.error( 'not found' )
+			else:
+				self.env.output.warning( 'not found' )
+
+		self.env[name] = lib
+		return lib
+
 	def config_header( self ):
-		return self['compiler'].name
-			
-	def __str__( self ):
-		return 'CCompiler'
+		return self.compiler.name
+
+	def __nonzero__( self ):
+		return bool( self.compiler )

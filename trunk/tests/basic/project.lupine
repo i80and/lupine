@@ -1,7 +1,7 @@
-name:			Basic
+def configure( env ):
+	pass
 
-compiler:		%ccompiler
+def build( env, args ):
+	compiler = env.load( 'ccompiler' )
+	basic = compiler.program( 'basic', ['*.c'] )
 
-basic:			%program
-basic.compiler:	$(compiler)
-basic.src:		[*.c]

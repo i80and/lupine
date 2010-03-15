@@ -3,10 +3,10 @@
 
 int main( int argc, char** argv )
 {
-	#ifdef HAVE_TAR_H
-		printf( "Have tar\n" );
+	#ifdef MATH_H
+		printf( "Have math\n" );
 	#else
-		printf( "Lack tar\n" );
+		printf( "Lack math\n" );
 	#endif
 
 	#ifdef HAVE_FOO_H

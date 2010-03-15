@@ -1,23 +1,13 @@
-name:			Basic
+def configure( env ):
+	pass
 
-compiler:		%ccompiler
+def build( env, args ):
+	compiler = env.load( 'ccompiler' )
 
-tar:			%lib
-tar.compiler:	$(compiler)
-tar.headers:	[tar.h]
-
-foo:			%lib
-foo.compiler:	$(compiler)
-foo.required:	False
-foo.headers:	[_foo.h]
-
-config_header:	%config
-config_header.options: [
-	HAVE_TAR_H $(tar)
-	HAVE_FOO_H $(foo)
-	COMPILER $(compiler)
-]
-
-basic:			%program
-basic.compiler:	$(compiler)
-basic.src:		[*.c]
+	math = compiler.lib( 'math', headers=['math.h'], libs=['m'] )
+	foo = compiler.lib( 'foo', headers=['_foo.h'], required=False )
+	
+	config = {'MATH_H': math,
+				'FOO_H': foo }
+	config_header = env.load( 'config', config=config )
+	test = compiler.program( 'test', ['main.c'] )

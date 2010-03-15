@@ -40,7 +40,7 @@ class Makefile:
 			commands = [commands]
 		
 		# Avoid duplicates
-		if self.rules.has_key( target ):
+		if target in self.rules:
 			return
 		
 		rule = Rule( target, deps, commands )

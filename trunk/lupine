@@ -1,38 +1,36 @@
 #!/usr/bin/python
 import sys
+import imp
 from optparse import OptionParser, OptionGroup
 
-import ProjectParser
 import Environment
-import ParseExceptions
 
 VERSION = '0.0'
 
 class Project:
 	def __init__( self, path ):
-		self.env = Environment.Env()
+		env = Environment.Env()
 		
 		# Parse the project config file
 		try:
-			raw = ProjectParser.ProjectFile( path, env=self.env )
-		except ParseExceptions.ParseError as err:
-			self.env.output.comment( 'Parsing error: {0}'.format( err.msg ), True)
+			project = imp.load_source( 'project', path )
+		except IOError:
+			self.env.output.error( 'No project definition found' )
 
 		# Set up our command line options
 		option_parser = OptionParser( version='%prog {0}'.format( VERSION ))
-
-		# Find commands to run
-		self.env.run_commands()
+		project.configure( env )
+		option_parser.parse_args()
+		
+		project.build( env, env.args )
 
 		# Output the makefile
-		self.env.output.start( 'Writing makefile...' )
-		self.env.make.write()
-		self.env.output.success( 'done' )
-		
+		env.output.start( 'Writing makefile...' )
+		env.make.write()
+		env.output.success( 'done' )
+	
 def main():
-	f = open( './project.lupine', 'r' )
 	project = Project( './project.lupine' )
-	f.close()
 
 if __name__ == '__main__':
 	main()
