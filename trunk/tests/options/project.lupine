@@ -1,0 +1,11 @@
+def configure( env ):
+	env.add_option( 'enable-glib', 'Enable use of GLib', 'bool', True )
+	env.add_option( 'prefix', 'Install prefix', 'string', '/usr/' )
+
+def build( env, args ):
+	compiler = env.load( 'ccompiler' )
+
+	if args['enable-glib']:
+		glib = env.load( 'pkgconfig', compiler=compiler, pkg='glib-2.0' )
+
+	print args['prefix']

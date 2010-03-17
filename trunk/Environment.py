@@ -2,8 +2,11 @@ import sys
 import re
 import os
 import os.path
+from optparse import OptionParser, OptionGroup
 
 import Make
+
+VERSION = '0.0'
 
 class ConfigError( Exception ):
 	pass
@@ -11,6 +14,13 @@ class ConfigError( Exception ):
 class NoSuchCommand( ConfigError ):
 	def __init__( self, command ):
 		self.command = command
+
+class NoSuchOption( ConfigError ):
+	def __init__( self, option ):
+		self.option = option
+	
+	def __str__( self ):
+		return 'No option {0} given.'.format( self.option );
 
 class Output:
 	SUCCESS = chr( 27 ) + '[32m'
@@ -99,11 +109,14 @@ class Env:
 		self.targets = {}
 		self.output = Output()
 		self.make = Make.Makefile()
-		self.args = {}
-		
 		self.system_path = os.environ['PATH'].split( os.pathsep )
-		
 		self.space_regexp = re.compile( '\s' )
+		
+		# Command-line options
+		self.__args = []
+		self.options = OptionParser( version='%prog {0}'.format( VERSION ))
+		self.project_options = OptionGroup( self.options, 'Project Options' )
+		self.options.add_option_group( self.project_options )
 
 	def has_command( self, name ):
 		'Check if the given command exists'
@@ -114,19 +127,19 @@ class Env:
 		
 		return True
 
-	def load( self, name, **args ):
+	def load( self, module_name, **args ):
 		'Return a command object of type name'
 		# Import the command and create the instance
 		try:
-			module = 'command_' + name
+			module = 'command_' + module_name
 			full_module = 'commands.' + module
 			try:
-				command = getattr( getattr( __import__( full_module ), module ), name )
+				command = getattr( getattr( __import__( full_module ), module ), module_name )
 			except AttributeError:
-				raise NoSuchCommand( name )
+				raise NoSuchCommand( module_name )
 		except ImportError as e:
 			# This is too broad of a catch
-			raise NoSuchCommand( name )
+			raise NoSuchCommand( module_name )
 		
 		return command( self, **args )
 	
@@ -138,6 +151,32 @@ class Env:
 				return chosen_path
 		
 		return None
+
+	def add_option( self, name, description, type, default ):
+		'Add a configuration option to the project'
+		option = '--{0}'.format( name )		
+		if type == 'bool':
+			self.project_options.add_option( option, action='store_true', help=description, default=default, dest=name )
+		else:
+			self.project_options.add_option( option, help=description, type=type, default=default, dest=name )
+
+		self.__args.append( name )
+
+	@property
+	def args( self ):
+		'Convert command-line options into a dictionary'
+		args = {}
+		values = self.options.parse_args()[0]
+		
+		for arg in self.__args:
+			if hasattr( values, arg ):
+				args[arg] = getattr( values, arg )
+			else:
+				# Because default values are required, if a switch isn't given
+				# it must be a boolean and thus false
+				args[arg] = False
+		
+		return args
 		
 	def escape_whitespace( self, str ):
 		'Escape whitespace in a string.'
