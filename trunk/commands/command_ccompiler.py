@@ -144,17 +144,17 @@ Valid options:
 		
 		return output.keys()
 
-	def program( self, target, src, **args ):
+	def program( self, target, src, libs=[], options=[], optimize=1 ):
 		'Return a target describing an executable program'
 		if not isinstance( target, basestring ):
 			raise TypeError, target
 		
 		target = self.compiler.name_program( target )
-		linked = LinkedTarget.LinkedTarget( self.env, src, target, self, False, **args )
+		linked = LinkedTarget.LinkedTarget( self.env, src, target, self, False, libs, options, optimize )
 		self.env[target] = linked
 		return linked
 	
-	def shared( self, target, src, **args ):
+	def shared( self, target, src, libs=[], options=[], optimize=1 ):
 		'Return a target describing a shared library'
 		if not isinstance( target, basestring ):
 			raise TypeError, target
@@ -164,9 +164,9 @@ Valid options:
 		self.env[target] = linked
 		return linked
 
-	def lib( self, name, required=True, **args ):
+	def lib( self, name, libs=[], headers=[], libpaths=[], headerpaths=[], options=[], required=True ):
 		self.env.output.start( 'Checking for {0}'.format( name ))
-		lib = Lib.Library(  self, **args )
+		lib = Lib.Library( self, libs, headers, libpaths, headerpaths, options )
 		if lib:
 			self.env.output.success( 'found' )
 		else:

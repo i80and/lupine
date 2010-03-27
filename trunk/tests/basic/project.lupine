@@ -4,4 +4,3 @@ def configure( env ):
 def build( env, args ):
 	compiler = env.load( 'ccompiler' )
 	basic = compiler.program( 'basic', ['*.c'] )
-
