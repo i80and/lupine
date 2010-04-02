@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import sys
-import imp
 
 import Environment
 
@@ -9,14 +8,8 @@ class Project:
 		env = Environment.Env()
 		
 		# Parse the project config file
-		try:
-			project = imp.load_source( 'project', path )
-		except IOError:
-			env.output.error( 'No project definition found' )
-
-		# Set up our command line options		
-		project.configure( env )
-		project.build( env, env.args )
+		env.configure( path )
+		env.build( path )
 
 		# Output the makefile
 		env.output.start( 'Writing makefile...' )

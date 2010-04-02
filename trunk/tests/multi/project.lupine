@@ -1,0 +1,5 @@
+def configure( env ):
+	pass
+	
+def build( env, args ):
+	env.build( 'foo.lupine' )

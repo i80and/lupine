@@ -2,6 +2,7 @@ import sys
 import re
 import os
 import os.path
+import imp
 from optparse import OptionParser, OptionGroup
 
 import Make
@@ -127,6 +128,21 @@ class Env:
 		
 		return True
 
+	def _include( self, path ):
+		'Include a lupine project file.'
+		try:
+			project = imp.load_source( 'project_{0}'.format( path ), path )
+		except IOError:
+			env.output.error( 'No project definition found: {0}'.format( path ))
+		
+		return project
+
+	def configure( self, path ):
+		self._include( path ).configure( self )
+
+	def build( self, path ):
+		self._include( path ).build( self, self.args )
+	
 	def load( self, module_name, **args ):
 		'Return a command object of type name'
 		# Import the command and create the instance
