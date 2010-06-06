@@ -1,23 +1,316 @@
 #!/usr/bin/python
+import os
+import os.path
 import sys
+import re
+import subprocess
 
-import Environment
-
-class Project:
-	def __init__( self, path ):
-		env = Environment.Env()
-		
-		# Parse the project config file
-		env.configure( path )
-		env.build( path )
-
-		# Output the makefile
-		env.output.start( 'Writing makefile...' )
-		env.make.write()
-		env.output.success( 'done' )
+def clamp( x, minval, maxval ):
+	if x <= minval:
+		return minval
+	elif x >= maxval:
+		return maxval
 	
-def main():
-	project = Project( './project.lupine' )
+	return x
 
-if __name__ == '__main__':
-	main()
+class Platform:
+	def __init__( self ):
+		"""Get the operating system being run."""
+		name = os.name
+		detailed_name = os.uname()[0].lower()
+		self.os = [name, detailed_name]
+	
+	def __eq__( self, other ):
+		return self.os[0] == other or self.os[1] == other
+	
+	def __str__( self ):
+		if self.os[1]:
+			return '/'.join( self.os )
+		else:
+			return self.os[0]
+
+class CCompiler:
+	class CompilerGeneric:
+		"""A generic lowest-common denominator compiler driver."""
+		version_regexp = re.compile( '[0-9]\.[0-9][^\s]*' )
+		command = 'cc'
+		
+		_version = '--version'
+		
+		def __init__( self ):
+			pass
+
+		@classmethod
+		def detect( cls ):
+			"""Attempt to detect if this compiler is present."""
+			try:
+				subprocess.Popen( cls.command, stdout=subprocess.PIPE, 
+								stderr=subprocess.PIPE )
+			except OSError:
+				return False
+			
+			return True
+		
+		def _compile( self, src, target, options ):
+			"""Create a compilation command."""
+			command = []
+			command.append( self.command )
+			command.append( ' '.join( src ))
+			command.append( '-o{0}'.format( target ))
+			command.append( options )
+			return ' '.join( command )
+		
+		def program( self, src, target, options ):
+			self._compile( src, target, options )
+		
+		def version( self ):
+			"""Get the version of this C compiler."""
+			command = [self.command, self._version]
+			result = subprocess.Popen( command, stdout=subprocess.PIPE )
+			return self.version_regexp.findall( result.communicate()[0] )[0]
+		
+		def link( self, libs ):
+			"""Return the necessary options to link to a given library."""
+			return ' '.join( ['-l{0}'.format( lib ) for lib in libs] )
+		
+		def searchpath( self, paths ):
+			return ' '.join( ['-L{0} -I{0}'.format( path ) for path in paths] )
+		
+	class CompilerGCC( CompilerGeneric ):
+		"""A driver for the GCC compiler."""
+		command = 'gcc'
+		
+		def optimize( self, level ):
+			"""Set optimization and debugging flags."""
+			level = clamp( level, 0, 3 )
+
+			if level == 0:
+				return '-O0 -Wall -g'
+				
+			return '-O{0}'.format( level )
+	
+	class CompilerClang( CompilerGeneric ):
+		"""A driver for the LLVM-based Clang compiler."""
+		command = 'clang'
+	
+	class CompilerTCC( CompilerGeneric ):
+		"""A driver for the Tiny C Compiler."""
+		command = 'tcc'
+		
+		_version = '-v'
+		
+		def optimize( self, level ):
+			if level > 0:
+				return '-O'
+			else:
+				return '-O -Wall -b'
+		
+	compilers = {
+		'windows': [CompilerClang, CompilerGCC],
+		'posix': [CompilerClang, CompilerGCC, CompilerTCC],
+		'default': [CompilerGeneric]
+	}
+	_dep_pat = re.compile( '(?:#include|#import) (<|")(.+)(?:>|")', re.M )
+
+	def __init__( self, filter=lambda x: True ):
+		self.find_compiler( filter )
+
+	def find_compiler( self, filter ):
+		"""Find and set up an installed compiler matching a filter function."""
+		platform = Platform()
+		
+		compilers = []
+		supported_platforms = self.compilers.keys()
+		supported_platforms.reverse()
+		for x in supported_platforms:
+			compilers.extend( self.compilers[x] )
+		
+		compilers.extend( self.compilers['default'] )
+
+		# Narrow down to installed compilers
+		compilers = [compiler for compiler in compilers if
+					compiler.detect() and filter( compiler )]
+
+		self.compiler = compilers[0]()
+	
+	def program( self, src, target, **options ):
+		"""Create a program target."""
+		arguments = [getattr( self.compiler, option )( options[option] ) for \
+					 option in options if hasattr( self.compiler, option )]
+		
+		return self.compiler.compile( src, target, arguments )
+		
+	def shared( self, src, target, **options ):
+		"""Create a shared library."""
+		pass
+	
+	def static( self, src, target, **options ):
+		"""Create a static library."""
+		pass
+	
+	def get_deps( self, src_file ):
+		"""Find the dependencies of a given source file."""
+		# This is a very cruddy and naive algorithm based on regexps
+		# TODO: Implement something more sophisticated!
+		queue = [src_file]
+		output = {}
+		
+		for dep in queue:
+			output[dep] = None
+			
+			# Open the current file
+			cur = open( dep, 'r' )
+
+			# Look for includes
+			potential_deps = self._dep_pat.findall( cur.read())
+			cur.close()
+			
+			for potential_dep in potential_deps:
+				# Don't allow duplicates
+				if potential_dep[1] in output:
+					continue
+					
+				# Only look at non-system headers	
+				if potential_dep[0] == '"':
+					queue.append( os.path.join( os.path.split( dep )[0], potential_dep[1] ))
+		
+		return output.keys()
+
+class ObjCCompiler( CCompiler ):
+	pass
+
+class CPPCompiler( CCompiler ):
+	pass
+
+class ConfigHeader( dict ):
+	HEADER_ID_REGEXP = re.compile( '[^\w]*' )
+
+	def _get_id( self, path ):
+		"""Get a (hopefully) unique representation of this path suitable as a 
+		C identifier."""
+		header_id = os.path.splitext( os.path.basename( path ))[0]
+		header_id = self.HEADER_ID_REGEXP.sub( '', header_id ).upper()
+		
+		return header_id
+
+	def dumps( self, name ):
+		"""Get a string containing this config header."""
+		result = []
+		number_template = '#define {0} {1}'
+		string_template = '#define {0} "{1}"'
+		
+		# Add header identifier
+		result.append( '#ifndef __{0}_H__\n#define __{0}_H__'.format( name ))
+		
+		for option in self:
+			value = self[option]
+			if not value:
+				continue
+			
+			# Assign the value; enclose in quotes if needed
+			if isinstance( value, int ) or isinstance( value, float ):
+				result.append( number_template.format( option, value ))
+			else:
+				# Handle multi-line strings
+				value = '\\\n'.join( str( value ).split( '\n' ))
+				result.append( string_template.format( option, value ))
+			
+		result.append( '#endif' )
+		return '\n'.join( result )
+		
+	def write( self, path='./config.h' ):
+		"""Write this config.h-style header to the given path."""
+		header = open( path, 'w' )
+		header.write( self.dumps( self._get_id( path )))
+		header.close()
+
+class Makefile:
+	commands = 0
+	deps = 1
+	
+	def __init__( self ):
+		self.rules = {}
+		self.add_phony( 'all' )
+		self.add_phony( 'clean' )
+	
+	def __add( self, target, store, x ):
+		"""Generically mutate a target's rule."""
+		if not target in self.rules:
+			self.rules[target] = ( [], [] )
+		
+		if not isinstance( x, list ):
+			x = [x]
+		
+		self.rules[target][store].extend( x )
+
+	def add_command( self, target, command ):
+		"""Add a command for the given target rule to execute."""
+		self.__add( target, self.commands, command )
+		
+	def add_dep( self, target, deps ):
+		"""Add dependencies for the given target."""
+		self.__add( target, self.deps, deps )
+
+	def add_phony( self, target ):
+		"""Tag a target as being a phony."""
+		self.__add( '.PHONY', self.deps, target )
+
+	def add_default( self, target ):
+		"""Tag a target as being a default build target."""
+		self.__add( 'all', self.deps, target )
+	
+	def get_rule( self, target ):
+		"""Dump a specified target out to a Makefile rule string."""
+		deps = ''
+		if target in self.rules:
+			deps = ' '.join( self.rules[target][self.deps] )
+		
+		commands = ['\t{0}'.format( command ) for command in \
+					self.rules[target][self.commands]]
+		
+		return '{0}:{1}\n{2}'.format( target, deps, '\n'.join( commands ))
+	
+	def dumps( self ):
+		"""Dump the Makefile out as a string."""
+		result = []
+		
+		result.append( self.get_rule( 'all' ))
+
+		for rule in self.rules:
+			if not result == 'all':
+				result.append( self.get_rule( rule ))		
+		
+		return '\n'.join( result )
+
+class Report:
+	VT100 = {
+		'red': '31',
+		'green': '32',
+		'yellow': '33',
+		'bright': '1'
+	}
+	
+	def __init__( self, logpath='./lupine.log' ):
+		self.logpath = logpath
+		self.components = {}
+	
+	def fail( self, message ):
+		"""Display and log an error message, then quit."""
+		self.log( message )
+		print( self.__format( message, 'red' ))
+		sys.exit( 1 )
+
+	def log( self, message ):
+		"""Quietly log a debugging message."""
+		pass
+	
+	def __format( self, message, *options ):
+		"""Format a message using VT100 escape codes."""
+		composite = []
+		for option in options:
+			composite.append( '{0}'.format( self.VT100[option] ))
+		return '\x1b[{0}m{1}\x1b[0m'.format( ';'.join( composite ), message )
+	
+#class Project:
+#	def __init__( self, name ):
+#		pass
